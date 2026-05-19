@@ -1,124 +1,96 @@
 /* ============================================================
-   Shuttlestepz — trainer.js  (V2 + V1 AI merged)
-   Real MoveNet pose detection from V1
-   V2 dashboard architecture, DOM refs, auth, UI
+   Shuttlestepz — trainer.js
+   AI Footwork Trainer Logic (auth-aware)
    ============================================================ */
 
-/* ── Guard: only run on trainer tab ── */
-if (!document.getElementById('tr-video')) throw new Error('Not trainer page')
+// Guard: only run on trainer page
+if (!document.getElementById('video')) throw new Error('Not trainer page')
 
-/* ═══════════════════════════════════════════════════════════
-   DOM REFS — V2 IDs
-═══════════════════════════════════════════════════════════ */
-const video       = document.getElementById('tr-video')
-const canvas      = document.getElementById('tr-canvas')
-const ctx         = canvas.getContext('2d')
-const poseBadge   = document.getElementById('tr-pose-badge')
-const feedback    = document.getElementById('tr-feedback')
-const dirText     = document.getElementById('tr-dir-text')
-const tArc        = document.getElementById('tr-t-arc')
-const tNum        = document.getElementById('tr-t-num')
-const sRound      = document.getElementById('tr-s-round')
-const sScore      = document.getElementById('tr-s-score')
-const sStreak     = document.getElementById('tr-s-streak')
-const sAcc        = document.getElementById('tr-s-acc')
-const srRound     = document.getElementById('tr-sr-round')
-const srScore     = document.getElementById('tr-sr-score')
-const srStreak    = document.getElementById('tr-sr-streak')
-const srAcc       = document.getElementById('tr-sr-acc')
-const pdots       = document.getElementById('tr-pdots')
-const modelStatus = document.getElementById('tr-model-status')
-const speedBar    = document.getElementById('tr-speed-bar')
-const speedVal    = document.getElementById('tr-speed-val')
-const setupScreen = document.getElementById('tr-screen-setup')
-const resultScreen= document.getElementById('tr-screen-results')
-const lockOverlay = document.getElementById('tr-lock-overlay')
+// ── DOM refs ──────────────────────────────────────────────────
+const video      = document.getElementById('video')
+const canvas     = document.getElementById('overlay')
+const ctx        = canvas.getContext('2d')
+const poseBadge  = document.getElementById('pose-badge')
+const feedback   = document.getElementById('feedback')
+const dirText    = document.getElementById('dir-text')
+const tArc       = document.getElementById('t-arc')
+const tNum       = document.getElementById('t-num')
+const sRound     = document.getElementById('s-round')
+const sScore     = document.getElementById('s-score')
+const sStreak    = document.getElementById('s-streak')
+const sAcc       = document.getElementById('s-acc')
+const pdots      = document.getElementById('pdots')
+const modelStatus= document.getElementById('model-status')
+const speedBar   = document.getElementById('speed-bar')
+const speedVal   = document.getElementById('speed-val')
 
-/* ── Setup controls ── */
-const slRounds = document.getElementById('tr-sl-rounds')
-const slTime   = document.getElementById('tr-sl-time')
-const chkVoice = document.getElementById('tr-chk-voice')
-const chkBeep  = document.getElementById('tr-chk-beep')
+const setupScreen  = document.getElementById('screen-setup')
+const resultScreen = document.getElementById('screen-results')
 
-if (slRounds) slRounds.oninput = () => {
-  document.getElementById('tr-lbl-rounds').textContent   = slRounds.value
-  document.getElementById('tr-lbl-rounds-r').textContent = slRounds.value
-}
-if (slTime) slTime.oninput = () => {
-  document.getElementById('tr-lbl-time').textContent   = slTime.value + 's'
-  document.getElementById('tr-lbl-time-r').textContent = slTime.value + 's'
-}
+// ── Sliders ────────────────────────────────────────────────────
+const slRounds = document.getElementById('sl-rounds')
+const slTime   = document.getElementById('sl-time')
+const chkVoice = document.getElementById('chk-voice')
+const chkBeep  = document.getElementById('chk-beep')
 
-/* ═══════════════════════════════════════════════════════════
-   DIFFICULTY CONFIG — from V1
-═══════════════════════════════════════════════════════════ */
+slRounds.oninput = () => document.getElementById('lbl-rounds').textContent = slRounds.value
+slTime.oninput   = () => document.getElementById('lbl-time').textContent   = slTime.value + 's'
+
+// ── Difficulty ────────────────────────────────────────────────
 const DIFFICULTY = {
-  easy  : { rounds:8,  time:6, label:'6s per direction · 8 rounds · beginner' },
-  medium: { rounds:10, time:4, label:'4s per direction · 10 rounds · standard' },
-  hard  : { rounds:15, time:3, label:'3s per direction · 15 rounds · competitive' },
-  pro   : { rounds:20, time:2, label:'2s per direction · 20 rounds · elite' },
+  easy  : { rounds: 8,  time: 6, label: '6s per direction · 8 rounds · beginner' },
+  medium: { rounds: 10, time: 4, label: '4s per direction · 10 rounds · standard' },
+  hard  : { rounds: 15, time: 3, label: '3s per direction · 15 rounds · competitive' },
+  pro   : { rounds: 20, time: 2, label: '2s per direction · 20 rounds · elite' },
 }
 
-let selectedDiff  = 'medium'
-let selectedGroup = 'all'
+let selectedDiff = 'medium'
 
-document.querySelectorAll('.tr-dp').forEach(btn => {
+document.querySelectorAll('.dp').forEach(btn => {
   btn.addEventListener('click', () => {
     if (btn.disabled) return
-    document.querySelectorAll('.tr-dp').forEach(b => b.classList.remove('sel'))
-    btn.classList.add('sel')
+    document.querySelectorAll('.dp').forEach(b => b.classList.remove('selected'))
+    btn.classList.add('selected')
     selectedDiff = btn.dataset.diff
     const d = DIFFICULTY[selectedDiff]
-    const dd = document.getElementById('tr-diff-desc')
-    if (dd) dd.textContent = d.label
-    if (slRounds) { slRounds.value = d.rounds; document.getElementById('tr-lbl-rounds').textContent = d.rounds; document.getElementById('tr-lbl-rounds-r').textContent = d.rounds }
-    if (slTime)   { slTime.value   = d.time;   document.getElementById('tr-lbl-time').textContent   = d.time+'s'; document.getElementById('tr-lbl-time-r').textContent = d.time+'s' }
+    document.getElementById('diff-desc').textContent = d.label
+    slRounds.value = d.rounds; slTime.value = d.time
+    document.getElementById('lbl-rounds').textContent = d.rounds
+    document.getElementById('lbl-time').textContent   = d.time + 's'
   })
 })
 
-document.querySelectorAll('.tr-zg-btn[data-sg]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tr-zg-btn[data-sg]').forEach(b => b.classList.remove('sel'))
-    btn.classList.add('sel')
-    selectedGroup = btn.dataset.sg === 'ctr' ? 'centre' : btn.dataset.sg
-  })
-})
-
-/* ═══════════════════════════════════════════════════════════
-   ZONE GROUPS — from V1
-═══════════════════════════════════════════════════════════ */
+// ── Zone groups ───────────────────────────────────────────────
 const ZONE_GROUPS = {
   all   : ['FRONT','BACK','LEFT','RIGHT','LEFT CORNER','RIGHT CORNER','BACK LEFT','BACK RIGHT'],
   front : ['LEFT CORNER','RIGHT CORNER'],
   back  : ['BACK LEFT','BACK RIGHT'],
   centre: ['LEFT','RIGHT'],
 }
-const ALL_ZONES  = ZONE_GROUPS.all
-let   activeZones = ZONE_GROUPS.all
+const ZONES = ZONE_GROUPS.all
+let activeZones   = ZONE_GROUPS.all
+let selectedGroup = 'all'
 
-/* ═══════════════════════════════════════════════════════════
-   POSE DETECTION CONSTANTS — from V1
-═══════════════════════════════════════════════════════════ */
-const THRESH_X     = 0.12
-const THRESH_Y     = 0.10
-const SMOOTH_ALPHA = 0.4
-const CALIB_FRAMES = 25
+document.querySelectorAll('.zg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.zg-btn').forEach(b => b.classList.remove('selected'))
+    btn.classList.add('selected')
+    selectedGroup = btn.dataset.group
+  })
+})
 
-/* ═══════════════════════════════════════════════════════════
-   STATE
-═══════════════════════════════════════════════════════════ */
+// ── Thresholds ────────────────────────────────────────────────
+const THRESH_X    = 0.12
+const THRESH_Y    = 0.10
+const SMOOTH_ALPHA= 0.4
+
+// ── State ──────────────────────────────────────────────────────
 let detector    = null
 let animFrameId = null
 let poseRunning = false
 
 let smoothHipX = null, smoothHipY = null
 let smoothFeetX= null, smoothFeetY= null
-let hipX = null, hipY = null
-let feetX= null, feetY= null
-
-let centerX = null, centerY = null
-let frameW  = 640,  frameH  = 480
-let calibrated = false, calibFrames = 0, calibSumX = 0, calibSumY = 0
 
 function ema(prev, next) {
   return prev === null ? next : prev * (1 - SMOOTH_ALPHA) + next * SMOOTH_ALPHA
@@ -132,9 +104,12 @@ let session = {
   waitingForReturn:false, timerInterval:null, timerEnd:0,
 }
 
-/* ═══════════════════════════════════════════════════════════
-   AUDIO — from V1
-═══════════════════════════════════════════════════════════ */
+let centerX=null, centerY=null, frameW=640, frameH=480
+let hipX=null, hipY=null, feetX=null, feetY=null
+let calibrated=false, calibFrames=0, calibSumX=0, calibSumY=0
+const CALIB_FRAMES = 25
+
+// ── Audio ──────────────────────────────────────────────────────
 let audioCtx = null
 function getAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
@@ -150,14 +125,12 @@ function beep(freq=880, dur=0.12, vol=0.4, type='sine') {
     osc.start(); osc.stop(ac.currentTime+dur)
   } catch(e){}
 }
-function successSound() { beep(660,.07,.3); setTimeout(()=>beep(880,.12,.35),70); setTimeout(()=>beep(1100,.09,.2),160) }
-function failSound()    { beep(220,.18,.35,'sawtooth'); setTimeout(()=>beep(180,.15,.2,'sawtooth'),120) }
-function calibSound()   { beep(440,.1,.2); setTimeout(()=>beep(660,.15,.25),100) }
+function successSound(){ beep(660,.07,.3); setTimeout(()=>beep(880,.12,.35),70); setTimeout(()=>beep(1100,.09,.2),160) }
+function failSound(){    beep(220,.18,.35,'sawtooth'); setTimeout(()=>beep(180,.15,.2,'sawtooth'),120) }
+function calibSound(){   beep(440,.1,.2); setTimeout(()=>beep(660,.15,.25),100) }
 
-/* ═══════════════════════════════════════════════════════════
-   SPEECH — from V1
-═══════════════════════════════════════════════════════════ */
-let voices = []
+// ── Speech ─────────────────────────────────────────────────────
+let voices=[]
 window.speechSynthesis.onvoiceschanged = () => { const v=window.speechSynthesis.getVoices(); if(v.length) voices=v }
 setTimeout(() => { const v=window.speechSynthesis.getVoices(); if(v.length) voices=v }, 200)
 
@@ -174,34 +147,24 @@ function speak(text) {
   }, 60)
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CAMERA — from V1
-═══════════════════════════════════════════════════════════ */
+// ── Camera ─────────────────────────────────────────────────────
 async function startCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video:{ width:640, height:480, facingMode:'user' }, audio:false
-  })
+  const stream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}})
   video.srcObject = stream
   return new Promise(resolve => {
     video.onloadedmetadata = () => {
       video.play()
-      frameW = video.videoWidth  || 640
-      frameH = video.videoHeight || 480
-      canvas.width = frameW; canvas.height = frameH
+      frameW = video.videoWidth||640; frameH = video.videoHeight||480
+      canvas.width=frameW; canvas.height=frameH
       resolve()
     }
   })
 }
 
-function stopCamera() {
-  if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop())
-}
-
-/* ═══════════════════════════════════════════════════════════
-   MODEL — from V1 (real MoveNet, not simulated)
-═══════════════════════════════════════════════════════════ */
+// ── Model ──────────────────────────────────────────────────────
 async function loadModel() {
-  setModelStatus('err', 'Loading MoveNet…')
+  modelStatus.className = 'err'
+  modelStatus.textContent = 'Loading MoveNet…'
   try {
     detector = await poseDetection.createDetector(
       poseDetection.SupportedModels.MoveNet,
@@ -209,34 +172,28 @@ async function loadModel() {
     )
     poseBadge.textContent = 'CALIBRATING'
     poseBadge.classList.add('tracking')
-    setModelStatus('ok', 'AI ready ✓ — stand in frame to calibrate')
+    modelStatus.className = 'ok'
+    modelStatus.textContent = 'AI ready ✓ — stand in frame to calibrate'
   } catch(err) {
-    setModelStatus('err', '❌ Model failed — check connection')
+    modelStatus.className = 'err'
+    modelStatus.textContent = '❌ Model failed — check connection'
     throw err
   }
 }
 
-function setModelStatus(cls, txt) {
-  if (!modelStatus) return
-  modelStatus.className = cls
-  modelStatus.textContent = txt
-}
-
-/* ═══════════════════════════════════════════════════════════
-   POSE DETECTION LOOP — V1 logic, V2 DOM IDs
-═══════════════════════════════════════════════════════════ */
+// ── Pose loop ──────────────────────────────────────────────────
 async function detectPose() {
   if (!poseRunning) return
   try {
     const poses = await detector.estimatePoses(video)
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.clearRect(0,0,canvas.width,canvas.height)
     ctx.save()
 
     if (poses.length > 0) {
-      const kp = poses[0].keypoints
+      const kp=poses[0].keypoints
       const lHip=kp[11], rHip=kp[12], lAnkle=kp[15], rAnkle=kp[16]
 
-      if (lHip.score > .3 && rHip.score > .3) {
+      if (lHip.score>.3 && rHip.score>.3) {
         const rHX=(lHip.x+rHip.x)/2, rHY=(lHip.y+rHip.y)/2
         smoothHipX=ema(smoothHipX,rHX); smoothHipY=ema(smoothHipY,rHY)
         hipX=smoothHipX; hipY=smoothHipY
@@ -253,20 +210,18 @@ async function detectPose() {
         }
         feetX=smoothFeetX; feetY=smoothFeetY
 
-        /* ── Calibration ── */
         if (!calibrated) {
           calibSumX+=hipX; calibSumY+=hipY; calibFrames++
           if (calibFrames >= CALIB_FRAMES) {
             centerX=calibSumX/calibFrames; centerY=calibSumY/calibFrames
             calibrated=true
-            poseBadge.textContent='TRACKING'
-            poseBadge.classList.remove('lost')
-            if (feedback) feedback.textContent='Calibrated — starting…'
+            poseBadge.textContent='TRACKING'; poseBadge.classList.remove('lost')
+            feedback.textContent='Calibrated — starting…'
             calibSound()
           } else {
             const pct=Math.round(calibFrames/CALIB_FRAMES*100)
             poseBadge.textContent=`CAL ${pct}%`
-            if (feedback) feedback.textContent='Hold still at centre… calibrating'
+            feedback.textContent='Hold still at centre… calibrating'
           }
         } else {
           poseBadge.textContent='TRACKING'
@@ -277,17 +232,13 @@ async function detectPose() {
         drawSkeleton(kp)
         drawTrackingPoints()
         if (session.active && session.currentDir && calibrated) drawTargetZone(session.currentDir)
-
       } else { lostPose() }
     } else { lostPose() }
     ctx.restore()
-  } catch(e) { ctx.restore() }
+  } catch(e){ ctx.restore() }
   animFrameId = requestAnimationFrame(detectPose)
 }
 
-/* ═══════════════════════════════════════════════════════════
-   DRAWING — from V1
-═══════════════════════════════════════════════════════════ */
 function drawTrackingPoints() {
   if (feetX && feetX !== hipX) {
     ctx.beginPath(); ctx.arc(feetX,feetY,13,0,Math.PI*2)
@@ -297,32 +248,31 @@ function drawTrackingPoints() {
   }
   if (hipX) {
     ctx.beginPath(); ctx.arc(hipX,hipY,10,0,Math.PI*2)
-    ctx.fillStyle='rgba(57,224,122,0.2)'; ctx.fill()
+    ctx.fillStyle='rgba(56,210,90,0.2)'; ctx.fill()
     ctx.beginPath(); ctx.arc(hipX,hipY,4,0,Math.PI*2)
-    ctx.fillStyle='#39e07a'; ctx.fill()
+    ctx.fillStyle='#38d25a'; ctx.fill()
   }
 }
 
 function lostPose() {
-  hipX=null; hipY=null; feetX=null; feetY=null
+  hipX=null;hipY=null;feetX=null;feetY=null
   poseBadge.textContent='NO PERSON'
   poseBadge.classList.remove('tracking'); poseBadge.classList.add('lost')
 }
 
-/* Skeleton — V1 exact */
+// ── Skeleton ───────────────────────────────────────────────────
 const SKEL_PAIRS=[[5,6],[5,7],[7,9],[6,8],[8,10],[11,12],[5,11],[6,12],[11,13],[13,15],[12,14],[14,16]]
-const JCOLORS={0:'#00e5ff',1:'#00e5ff',2:'#00e5ff',3:'#00e5ff',4:'#00e5ff',5:'#ffe033',6:'#ffe033',7:'#ffe033',8:'#ffe033',9:'#ffe033',10:'#ffe033',11:'#39e07a',12:'#39e07a',13:'#f09040',14:'#f09040',15:'#f09040',16:'#f09040'}
-const JRADII ={0:4,1:3,2:3,3:3,4:3,5:6,6:6,7:5,8:5,9:5,10:5,11:9,12:9,13:7,14:7,15:7,16:7}
+const JCOLORS={0:'#00e5ff',1:'#00e5ff',2:'#00e5ff',3:'#00e5ff',4:'#00e5ff',5:'#ffe033',6:'#ffe033',7:'#ffe033',8:'#ffe033',9:'#ffe033',10:'#ffe033',11:'#38d25a',12:'#38d25a',13:'#f09040',14:'#f09040',15:'#f09040',16:'#f09040'}
+const JRADII={0:4,1:3,2:3,3:3,4:3,5:6,6:6,7:5,8:5,9:5,10:5,11:9,12:9,13:7,14:7,15:7,16:7}
 
 function drawSkeleton(kp) {
   const T=0.25
   ctx.lineWidth=2.5
   for (const [a,b] of SKEL_PAIRS) {
-    const pa=kp[a], pb=kp[b]
+    const pa=kp[a],pb=kp[b]
     if (pa.score>T && pb.score>T) {
       const g=ctx.createLinearGradient(pa.x,pa.y,pb.x,pb.y)
-      g.addColorStop(0,(JCOLORS[a]||'#fff')+'aa')
-      g.addColorStop(1,(JCOLORS[b]||'#fff')+'aa')
+      g.addColorStop(0,(JCOLORS[a]||'#fff')+'aa'); g.addColorStop(1,(JCOLORS[b]||'#fff')+'aa')
       ctx.strokeStyle=g; ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke()
     }
   }
@@ -330,10 +280,9 @@ function drawSkeleton(kp) {
     const p=kp[i]; if(p.score<T) continue
     const c=JCOLORS[i]||'#fff', r=JRADII[i]||5
     ctx.beginPath(); ctx.arc(p.x,p.y,r+3,0,Math.PI*2); ctx.fillStyle=c+'33'; ctx.fill()
-    ctx.beginPath(); ctx.arc(p.x,p.y,r,  0,Math.PI*2); ctx.fillStyle=c;      ctx.fill()
+    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2); ctx.fillStyle=c; ctx.fill()
     if (p.score>.6 && r>=5) {
-      ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2)
-      ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.fill()
+      ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.fill()
     }
   }
 }
@@ -342,31 +291,24 @@ function drawTargetZone(dir) {
   if (!calibrated||!centerX) return
   const tw=frameW*THRESH_X*1.5, th=frameH*THRESH_Y*1.5
   const [tx,ty]=zoneTarget(dir,centerX,centerY,frameW,frameH)
-  ctx.strokeStyle='rgba(57,224,122,0.8)'; ctx.lineWidth=2
+  ctx.strokeStyle='rgba(56,210,90,0.8)'; ctx.lineWidth=2
   ctx.setLineDash([6,4]); ctx.strokeRect(tx-tw,ty-th,tw*2,th*2); ctx.setLineDash([])
-  ctx.fillStyle='rgba(57,224,122,0.07)'; ctx.fillRect(tx-tw,ty-th,tw*2,th*2)
-  const cs=8
-  const corners=[[tx-tw,ty-th,1,1],[tx+tw,ty-th,-1,1],[tx-tw,ty+th,1,-1],[tx+tw,ty+th,-1,-1]]
-  ctx.strokeStyle='rgba(57,224,122,0.9)'; ctx.lineWidth=2.5
+  ctx.fillStyle='rgba(56,210,90,0.07)'; ctx.fillRect(tx-tw,ty-th,tw*2,th*2)
+  // Corners
+  const cs=8, corners=[[tx-tw,ty-th,1,1],[tx+tw,ty-th,-1,1],[tx-tw,ty+th,1,-1],[tx+tw,ty+th,-1,-1]]
+  ctx.strokeStyle='rgba(56,210,90,0.9)'; ctx.lineWidth=2.5
   for (const [cx,cy,sx,sy] of corners) {
     ctx.beginPath(); ctx.moveTo(cx+sx*cs,cy); ctx.lineTo(cx,cy); ctx.lineTo(cx,cy+sy*cs); ctx.stroke()
   }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   ZONE MATH — from V1
-═══════════════════════════════════════════════════════════ */
+// ── Zone math ──────────────────────────────────────────────────
 function zoneTarget(dir,cx,cy,fw,fh) {
   const ox=fw*.20, oy=fh*.18
   return ({
-    'FRONT'        :[cx,   cy+oy],
-    'BACK'         :[cx,   cy-oy],
-    'LEFT'         :[cx+ox,cy   ],
-    'RIGHT'        :[cx-ox,cy   ],
-    'LEFT CORNER'  :[cx+ox,cy+oy],
-    'RIGHT CORNER' :[cx-ox,cy+oy],
-    'BACK LEFT'    :[cx+ox,cy-oy],
-    'BACK RIGHT'   :[cx-ox,cy-oy],
+    'FRONT':[cx,cy+oy],'BACK':[cx,cy-oy],'LEFT':[cx+ox,cy],'RIGHT':[cx-ox,cy],
+    'LEFT CORNER':[cx+ox,cy+oy],'RIGHT CORNER':[cx-ox,cy+oy],
+    'BACK LEFT':[cx+ox,cy-oy],'BACK RIGHT':[cx-ox,cy-oy],
   })[dir] || [cx,cy]
 }
 
@@ -376,104 +318,76 @@ function isInZone(dir,x,y) {
   return Math.abs(x-tx)<frameW*THRESH_X*1.6 && Math.abs(y-ty)<frameH*THRESH_Y*1.6
 }
 
-/* ═══════════════════════════════════════════════════════════
-   TIMER RING — V2 IDs, V1 logic
-═══════════════════════════════════════════════════════════ */
-const CIRC = 2 * Math.PI * 32   // V2 ring r="32"
+// ── Timer ring ─────────────────────────────────────────────────
+const CIRC = 2*Math.PI*34
 
-function setRing(frac, urgent=false) {
-  if (!tArc) return
-  tArc.style.strokeDashoffset = (2*Math.PI*32) * (1 - Math.max(0,Math.min(1,frac)))
-  tArc.style.stroke = urgent ? '#e0b43c' : '#39e07a'
+function setRing(frac,urgent=false) {
+  tArc.style.strokeDashoffset = CIRC*(1-Math.max(0,Math.min(1,frac)))
+  tArc.style.stroke = urgent ? 'var(--amber)' : 'var(--accent)'
 }
 
 function startRingTimer(ms) {
   clearInterval(session.timerInterval)
-  session.timerEnd = Date.now() + ms
-  session.timerInterval = setInterval(() => {
+  session.timerEnd = Date.now()+ms
+  session.timerInterval = setInterval(()=>{
     const rem=session.timerEnd-Date.now(), frac=rem/ms
-    if (tNum) tNum.textContent = Math.max(0,Math.ceil(rem/1000))
+    tNum.textContent=Math.max(0,Math.ceil(rem/1000))
     setRing(frac, frac<.3)
     if (rem<=0) clearInterval(session.timerInterval)
-  }, 60)
+  },60)
 }
 
-/* ═══════════════════════════════════════════════════════════
-   DOTS — V2 IDs
-═══════════════════════════════════════════════════════════ */
+// ── Dots ───────────────────────────────────────────────────────
 function buildDots(n) {
-  if (!pdots) return
   pdots.innerHTML=''
   for (let i=0;i<n;i++) {
-    const d=document.createElement('div')
-    d.className='tr-dot'; d.id=`tr-dot-${i}`; pdots.appendChild(d)
+    const d=document.createElement('div'); d.className='dot'; d.id=`dot-${i}`; pdots.appendChild(d)
   }
 }
 function setDot(i,cls) {
-  const d=document.getElementById(`tr-dot-${i}`)
-  if (d) { d.classList.remove('ok','bad'); d.classList.add(cls) }
+  const d=document.getElementById(`dot-${i}`)
+  if(d){d.classList.remove('ok','bad');d.classList.add(cls)}
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STATS DISPLAY — updates both topbar chips + right sidebar
-═══════════════════════════════════════════════════════════ */
+// ── Stats display ──────────────────────────────────────────────
 function updateStats() {
-  const rnd = `${session.round}/${session.totalRounds}`
-  const acc = session.round===0 ? '—' : Math.round(session.hits/session.round*100)+'%'
-  // Topbar chips
-  if (sRound)  sRound.textContent  = rnd
-  if (sScore)  sScore.textContent  = session.score
-  if (sStreak) sStreak.textContent = session.streak
-  if (sAcc)    sAcc.textContent    = acc
-  // Right sidebar
-  if (srRound)  srRound.textContent  = rnd
-  if (srScore)  srScore.textContent  = session.score
-  if (srStreak) srStreak.textContent = session.streak
-  if (srAcc)    srAcc.textContent    = acc
+  sRound.textContent=`${session.round}/${session.totalRounds}`
+  sScore.textContent=session.score
+  sStreak.textContent=session.streak
+  sAcc.textContent=session.round===0?'—':Math.round(session.hits/session.round*100)+'%'
 }
 
-function updateSpeedDisplay(ms, maxMs) {
-  if (!speedBar||!speedVal) return
+function updateSpeedDisplay(ms,maxMs) {
   if (!ms) { speedBar.style.width='0%'; speedVal.textContent='—'; return }
   const pct=Math.max(5,Math.round((1-ms/maxMs)*100))
   speedBar.style.width=pct+'%'
-  speedBar.style.background=pct>=70?'#39e07a':pct>=40?'#e0b43c':'#e05c5c'
+  speedBar.style.background=pct>=70?'var(--accent)':pct>=40?'var(--amber)':'var(--red)'
   speedVal.textContent=(ms/1000).toFixed(2)+'s'
 }
 
-/* Zone pills — V2 IDs use tr-zp-ZONENAME */
-function allZonePills() {
-  ALL_ZONES.forEach(z => {
-    const e=document.getElementById(`tr-zp-${z.replace(/ /g,'')}`)
-    if(e) e.className='tr-zp'
-  })
-}
-function highlightZone(dir, cls) {
+function allZonePills() { ZONES.forEach(z=>{const e=document.getElementById(`zp-${z}`);if(e)e.className='zp'}) }
+function highlightZone(dir,cls) {
   allZonePills()
-  const e=document.getElementById(`tr-zp-${dir.replace(/ /g,'')}`)
+  const e=document.getElementById(`zp-${dir}`)
   if(e) e.classList.add(cls||'active')
 }
 
-/* ═══════════════════════════════════════════════════════════
-   ROUND FLOW — V1 logic exactly
-═══════════════════════════════════════════════════════════ */
-let hitDetected = false
-let currentZoneCheckInterval = null
+// ── Round flow ─────────────────────────────────────────────────
+let hitDetected=false, currentZoneCheckInterval=null
 
 function startRound() {
-  if (session.round >= session.totalRounds) { endSession(); return }
+  if (session.round>=session.totalRounds) { endSession(); return }
 
   let dir
-  do { dir = activeZones[Math.floor(Math.random()*activeZones.length)] }
-  while (dir === session.currentDir && activeZones.length > 1)
+  do { dir=activeZones[Math.floor(Math.random()*activeZones.length)] }
+  while (dir===session.currentDir && activeZones.length>1)
 
   session.currentDir=dir; session.active=true
   session.waitingForReturn=false; hitDetected=false
   session.roundStart=Date.now()
 
-  if (dirText) { dirText.textContent=dir; dirText.className='tr-dir-text' }
-  highlightZone(dir)
-  if (feedback) feedback.textContent='Move to zone!'
+  dirText.textContent=dir; dirText.className='dir-text'
+  highlightZone(dir); feedback.textContent='Move to zone!'
   startRingTimer(session.timePerDir*1000)
   speak(dir.toLowerCase())
   if (session.beepOn) setTimeout(()=>beep(660,.09),350)
@@ -514,18 +428,16 @@ function scoreRound(hit, responseMs=null) {
     session.score+=pts; session.dirStats[dir].hit++
     if (responseMs) { session.roundTimings.push(responseMs); session.dirStats[dir].totalMs+=responseMs }
     session.results.push({dir,hit:true,responseMs,pts})
-    if (dirText) { dirText.classList.add('hit','pulse') }
+    dirText.classList.add('hit','pulse')
     highlightZone(dir,'ok')
-    if (feedback) feedback.textContent=`✓ HIT! +${pts} pts`
+    feedback.textContent=`✓ HIT! +${pts} pts`
     setDot(rIdx,'ok'); successSound()
     updateSpeedDisplay(responseMs, session.timePerDir*1000)
     if (session.voiceOn) setTimeout(()=>speak('nice'),180)
   } else {
-    session.streak=0
-    session.results.push({dir,hit:false,responseMs:null,pts:0})
-    if (dirText) dirText.classList.add('miss')
-    highlightZone(dir,'bad')
-    if (feedback) feedback.textContent='✗ MISSED'
+    session.streak=0; session.results.push({dir,hit:false,responseMs:null,pts:0})
+    dirText.classList.add('miss'); highlightZone(dir,'bad')
+    feedback.textContent='✗ MISSED'
     setDot(rIdx,'bad'); failSound()
     updateSpeedDisplay(null, session.timePerDir*1000)
   }
@@ -534,39 +446,27 @@ function scoreRound(hit, responseMs=null) {
 
   setTimeout(()=>{
     allZonePills()
-    if (dirText) {
-      dirText.textContent = session.round>=session.totalRounds ? 'DONE!' : 'CENTRE'
-      dirText.className='tr-dir-text'
-    }
-    if (tNum) tNum.textContent='—'; setRing(1)
+    dirText.textContent=session.round>=session.totalRounds?'DONE!':'CENTRE'
+    dirText.className='dir-text'; tNum.textContent='—'; setRing(1)
     if (session.round>=session.totalRounds) setTimeout(endSession,800)
     else setTimeout(startRound,1200)
   },900)
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SESSION — V1 logic, V2 auth
-═══════════════════════════════════════════════════════════ */
+// ── Session ────────────────────────────────────────────────────
 function beginSession() {
-  session.totalRounds = parseInt(slRounds?.value||10)
-  session.timePerDir  = parseInt(slTime?.value||4)
-  session.voiceOn     = chkVoice?.checked ?? true
-  session.beepOn      = chkBeep?.checked  ?? true
-  session.difficulty  = selectedDiff
-  activeZones         = ZONE_GROUPS[selectedGroup] || ZONE_GROUPS.all
-
+  session.totalRounds=parseInt(slRounds.value); session.timePerDir=parseInt(slTime.value)
+  session.voiceOn=chkVoice.checked; session.beepOn=chkBeep.checked
+  session.difficulty=selectedDiff
+  activeZones=ZONE_GROUPS[selectedGroup]||ZONE_GROUPS.all
   session.round=0; session.score=0; session.streak=0; session.bestStreak=0; session.hits=0
   session.results=[]; session.dirStats={}; session.roundTimings=[]
   session.currentDir=null; session.active=false
-
   buildDots(session.totalRounds); updateStats()
-  if (dirText) { dirText.textContent='GET READY'; dirText.className='tr-dir-text' }
+  dirText.textContent='GET READY'; dirText.className='dir-text'
   setRing(1); updateSpeedDisplay(null, session.timePerDir*1000)
-  if (feedback) feedback.textContent = calibrated ? 'Starting in 2s…' : 'Stand still to calibrate…'
-
-  const w=setInterval(()=>{
-    if (calibrated) { clearInterval(w); if(feedback) feedback.textContent='GO!'; setTimeout(startRound,600) }
-  },300)
+  feedback.textContent=calibrated?'Starting in 2s…':'Stand still to calibrate…'
+  const w=setInterval(()=>{ if(calibrated){ clearInterval(w); feedback.textContent='GO!'; setTimeout(startRound,600) } },300)
 }
 
 function endSession() {
@@ -574,204 +474,84 @@ function endSession() {
   clearInterval(currentZoneCheckInterval); clearInterval(session.timerInterval)
   poseRunning=false
   if (animFrameId) cancelAnimationFrame(animFrameId)
-  stopCamera()
 
-  // Save via V2 AUTH
-  try {
-    if (window.AUTH) {
-      window.AUTH.recordSession({
-        mode        : 'footwork',
-        score       : session.score,
-        hits        : session.hits,
-        totalRounds : session.totalRounds,
-        bestStreak  : session.bestStreak,
-        roundTimings: session.roundTimings,
-        dirStats    : session.dirStats,
-      }).catch(e=>console.warn('[trainer] recordSession:',e))
-      window.AUTH.incrementSession()
-    }
-  } catch(e) { console.warn('[trainer] auth save failed:',e) }
+  // Save to auth system
+  try { AUTH.recordSession(session); AUTH.incrementSession() } catch(e){}
 
   showResults()
 }
 
-/* ═══════════════════════════════════════════════════════════
-   RESULTS — V1 logic, V2 IDs
-═══════════════════════════════════════════════════════════ */
+// ── Results ────────────────────────────────────────────────────
 function showResults() {
-  if (resultScreen) resultScreen.classList.add('active')
+  resultScreen.classList.add('active')
+  const acc=session.totalRounds>0?Math.round(session.hits/session.totalRounds*100):0
+  const avgMs=session.roundTimings.length?Math.round(session.roundTimings.reduce((a,b)=>a+b,0)/session.roundTimings.length):null
+  const grade=acc>=90?'S RANK — ELITE':acc>=75?'A RANK — SHARP':acc>=60?'B RANK — SOLID':acc>=40?'C RANK — KEEP GOING':'D RANK — NEEDS WORK'
 
-  const acc    = session.totalRounds>0 ? Math.round(session.hits/session.totalRounds*100) : 0
-  const avgMs  = session.roundTimings.length
-    ? Math.round(session.roundTimings.reduce((a,b)=>a+b,0)/session.roundTimings.length) : null
-  const grade  = acc>=90?'S RANK — ELITE':acc>=75?'A RANK — SHARP':acc>=60?'B RANK — SOLID':acc>=40?'C RANK — KEEP GOING':'D RANK — NEEDS WORK'
-  const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
+  document.getElementById('r-score').textContent=session.score
+  document.getElementById('r-grade').textContent=grade
+  document.getElementById('r-acc').textContent=acc+'%'
+  document.getElementById('r-streak').textContent=session.bestStreak
+  document.getElementById('r-speed').textContent=avgMs?(avgMs/1000).toFixed(2)+'s':'—'
+  document.getElementById('r-rounds').textContent=session.totalRounds
 
-  const tx = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v }
-  tx('tr-r-score',  session.score)
-  tx('tr-r-grade',  grade)
-  tx('tr-r-acc',    acc+'%')
-  tx('tr-r-streak', session.bestStreak)
-  tx('tr-r-speed',  avgMs ? (avgMs/1000).toFixed(2)+'s' : '—')
-  tx('tr-r-rounds', session.totalRounds)
-  tx('tr-r-xp',     '+'+xpEarned)
+  const bd=document.getElementById('r-bd')
+  bd.innerHTML=''
+  ZONES.forEach(dir=>{
+    const st=session.dirStats[dir]; if(!st||!st.total) return
+    const pct=Math.round(st.hit/st.total*100)
+    const color=pct>=80?'var(--accent)':pct>=50?'var(--amber)':'var(--red)'
+    bd.innerHTML+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--text2);min-width:88px;letter-spacing:1px">${dir}</div>
+      <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
+        <div style="height:100%;border-radius:3px;width:${pct}%;background:${color};transition:width .9s ease"></div></div>
+      <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${color};min-width:34px;text-align:right">${pct}%</div>
+    </div>`
+  })
+  speak(grade.split('—')[1]?.trim()||grade)
+}
 
-  // Zone breakdown
-  const bd = document.getElementById('tr-r-bd')
-  if (bd) {
-    bd.innerHTML=''
-    ALL_ZONES.forEach(dir => {
-      const st=session.dirStats[dir]; if(!st||!st.total) return
-      const pct=Math.round(st.hit/st.total*100)
-      const color=pct>=80?'#39e07a':pct>=50?'#e0b43c':'#e05c5c'
-      bd.innerHTML+=`
-        <div class="tr-bd-row">
-          <span style="min-width:88px;font-size:10px;letter-spacing:.8px">${dir}</span>
-          <div class="tr-bd-bar-wrap"><div class="tr-bd-bar" style="width:${pct}%;background:${color}"></div></div>
-          <span class="tr-bd-pct" style="color:${color}">${pct}%</span>
-        </div>`
-    })
-    if (!Object.keys(session.dirStats).length)
-      bd.innerHTML='<div style="font-size:11px;color:var(--text3)">No zones completed</div>'
+// ── Buttons ────────────────────────────────────────────────────
+document.getElementById('btn-start-session').addEventListener('click', async () => {
+  setupScreen.classList.remove('active')
+  try { getAudio() } catch(e){}
+  try {
+    await startCamera()
+    await loadModel()
+    poseRunning=true
+    detectPose()
+    setTimeout(beginSession,500)
+  } catch(err) {
+    modelStatus.textContent='Error: '+(err.message||err)
+    modelStatus.className='err'
+    setupScreen.classList.add('active')
   }
-
-  speak(grade.split('—')[1]?.trim() || grade)
-}
-
-/* ═══════════════════════════════════════════════════════════
-   RESET — full V1 state reset
-═══════════════════════════════════════════════════════════ */
-function resetTrainer() {
-  poseRunning=false
-  if (animFrameId) cancelAnimationFrame(animFrameId)
-  stopCamera()
-
-  calibrated=false; calibFrames=0; calibSumX=0; calibSumY=0
-  centerX=null; centerY=null
-  hipX=null; hipY=null; feetX=null; feetY=null
-  smoothHipX=null; smoothHipY=null; smoothFeetX=null; smoothFeetY=null
-
-  if (dirText)   { dirText.textContent='READY'; dirText.className='tr-dir-text' }
-  if (feedback)  feedback.textContent='Press Start to begin'
-  if (tNum)      tNum.textContent='—'
-  if (poseBadge) { poseBadge.textContent='STANDBY'; poseBadge.className='' }
-  setModelStatus('err','Standby')
-  setRing(1); allZonePills()
-}
-
-/* ═══════════════════════════════════════════════════════════
-   BUTTON WIRING — V2 IDs
-═══════════════════════════════════════════════════════════ */
-
-/* Start session */
-const btnStart = document.getElementById('tr-btn-start') || document.querySelector('.tr-btn-start')
-if (btnStart) {
-  btnStart.addEventListener('click', async () => {
-    // Check session limit via V2 auth
-    if (window.AUTH && !window.AUTH.canStartSession()) {
-      if (lockOverlay) lockOverlay.classList.remove('hidden')
-      return
-    }
-
-    if (setupScreen) setupScreen.classList.remove('active')
-    if (resultScreen) resultScreen.classList.remove('active')
-    try { getAudio() } catch(e){}
-
-    try {
-      btnStart.disabled=true
-      btnStart.textContent='Starting…'
-      await startCamera()
-      await loadModel()
-      poseRunning=true
-      detectPose()
-      if (window.AUTH) window.AUTH.incrementSession().catch(()=>{})
-      setTimeout(beginSession, 500)
-    } catch(err) {
-      setModelStatus('err','Error: '+(err.message||err))
-      if (setupScreen) setupScreen.classList.add('active')
-      btnStart.disabled=false
-      btnStart.textContent='▶ Start Training Session'
-    }
-  })
-}
-
-/* Stop */
-const btnStop = document.getElementById('tr-btn-stop')
-if (btnStop) {
-  btnStop.addEventListener('click', () => {
-    session.active=false
-    clearInterval(currentZoneCheckInterval); clearInterval(session.timerInterval)
-    poseRunning=false
-    if (animFrameId) cancelAnimationFrame(animFrameId)
-    stopCamera()
-    try {
-      if (window.AUTH) {
-        window.AUTH.recordSession({
-          mode:'footwork', score:session.score, hits:session.hits,
-          totalRounds:session.totalRounds, bestStreak:session.bestStreak,
-          roundTimings:session.roundTimings, dirStats:session.dirStats,
-        }).catch(()=>{})
-        window.AUTH.incrementSession()
-      }
-    } catch(e){}
-    showResults()
-  })
-}
-
-/* Train Again */
-const btnAgain = document.querySelector('.tr-btn-again')
-if (btnAgain) {
-  btnAgain.addEventListener('click', () => {
-    if (resultScreen) resultScreen.classList.remove('active')
-    resetTrainer()
-    if (window.AUTH && !window.AUTH.canStartSession()) {
-      if (lockOverlay) lockOverlay.classList.remove('hidden')
-    } else {
-      if (setupScreen) setupScreen.classList.add('active')
-    }
-  })
-}
-
-/* Back to dashboard */
-const btnDash = document.querySelector('.tr-btn-dash')
-if (btnDash) {
-  btnDash.addEventListener('click', () => {
-    resetTrainer()
-    if (typeof window.UI !== 'undefined' && UI.tab) UI.tab('overview')
-    else if (typeof switchTab === 'function') switchTab('overview')
-  })
-}
-
-/* Escape key */
-document.addEventListener('keydown', e => {
-  if (e.key==='Escape' && btnStop) btnStop.click()
 })
 
-/* ═══════════════════════════════════════════════════════════
-   EXPOSE as window.TR for any inline onclick calls in V2 HTML
-═══════════════════════════════════════════════════════════ */
-window.TR = {
-  begin : () => btnStart?.click(),
-  stop  : () => btnStop?.click(),
-  reset : resetTrainer,
-  setDiff(btn) {
-    document.querySelectorAll('.tr-dp').forEach(b=>b.classList.remove('sel'))
-    btn.classList.add('sel')
-    selectedDiff=btn.dataset.diff
-    const d=DIFFICULTY[selectedDiff]
-    const dd=document.getElementById('tr-diff-desc'); if(dd) dd.textContent=d.label
-    if(slRounds){slRounds.value=d.rounds;document.getElementById('tr-lbl-rounds').textContent=d.rounds;document.getElementById('tr-lbl-rounds-r').textContent=d.rounds}
-    if(slTime){slTime.value=d.time;document.getElementById('tr-lbl-time').textContent=d.time+'s';document.getElementById('tr-lbl-time-r').textContent=d.time+'s'}
-  },
-  setGroup(btn) {
-    document.querySelectorAll('.tr-zg-btn[data-tg]').forEach(b=>b.classList.remove('sel'))
-    btn.classList.add('sel'); selectedGroup=btn.dataset.tg
-  },
-  setSetupGroup(btn) {
-    document.querySelectorAll('.tr-zg-btn[data-sg]').forEach(b=>b.classList.remove('sel'))
-    btn.classList.add('sel'); selectedGroup=btn.dataset.sg==='ctr'?'centre':btn.dataset.sg
-  },
-  cfg: session,
-}
+document.getElementById('btn-stop').addEventListener('click', ()=>{
+  session.active=false
+  clearInterval(currentZoneCheckInterval); clearInterval(session.timerInterval)
+  poseRunning=false
+  if (animFrameId) cancelAnimationFrame(animFrameId)
+  if (video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop())
+  try { AUTH.recordSession(session); AUTH.incrementSession() } catch(e){}
+  showResults()
+})
 
-console.log('[trainer.js] V2+V1 AI loaded ✓')
+document.getElementById('btn-again').addEventListener('click', ()=>{
+  resultScreen.classList.remove('active')
+  // Reset pose tracking
+  calibrated=false; calibFrames=0; calibSumX=0; calibSumY=0
+  centerX=null; centerY=null; hipX=null; hipY=null
+  smoothHipX=null; smoothHipY=null; smoothFeetX=null; smoothFeetY=null
+  // Check limit
+  if (!AUTH.canStartSession()) {
+    document.getElementById('lock-overlay').classList.remove('hidden')
+  } else {
+    setupScreen.classList.add('active')
+  }
+})
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') document.getElementById('btn-stop').click()
+})
