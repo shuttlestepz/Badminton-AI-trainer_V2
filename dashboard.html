@@ -1788,6 +1788,9 @@ var TR = (function () {
     poseDetection.SupportedModels.MoveNet,
     { runtime: 'tfjs', modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
   );
+   if (ms) { ms.textContent = 'AI ready ✓'; ms.className = 'ok'; }
+  if (badge) { badge.textContent = 'CALIBRATING'; badge.classList.add('tracking'); }
+}
 
   /* ── Skeleton drawing ── */
   function drawSkeleton(kp, ctx) {
