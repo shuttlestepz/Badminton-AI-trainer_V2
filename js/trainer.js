@@ -527,6 +527,146 @@ function showResults() {
   speak(grade.split('—')[1]?.trim()||grade)
 }
 
+async function getAIFeedback() {
+  const feedbackSection = document.getElementById('ai-feedback-section')
+  const feedbackContent = document.getElementById('ai-feedback-content')
+  if (!feedbackSection || !feedbackContent) return
+ 
+  feedbackSection.style.display = 'block'
+  feedbackContent.innerHTML = `
+    <div class="ai-loading">
+      <div class="ai-spinner"></div>
+      <span>Analysing your session…</span>
+    </div>`
+ 
+  // Build zone performance summary
+  const zoneData = Object.entries(session.dirStats).map(([zone, s]) => ({
+    zone,
+    hit: s.hit,
+    total: s.total,
+    pct: s.total > 0 ? Math.round((s.hit / s.total) * 100) : 0,
+    avgMs: s.totalMs && s.hit > 0 ? Math.round(s.totalMs / s.hit) : null,
+  })).sort((a, b) => a.pct - b.pct)
+ 
+  const worst = zoneData.slice(0, 2)
+  const best  = zoneData.slice(-2).reverse()
+  const acc   = session.totalRounds > 0 ? Math.round(session.hits / session.totalRounds * 100) : 0
+  const avgMs = session.roundTimings.length
+    ? Math.round(session.roundTimings.reduce((a, b) => a + b, 0) / session.roundTimings.length)
+    : null
+ 
+  const prompt = `You are an expert badminton footwork coach. Analyse this training session and give specific, actionable feedback.
+ 
+SESSION DATA:
+- Difficulty: ${session.difficulty || 'medium'}
+- Total rounds: ${session.totalRounds}
+- Accuracy: ${acc}%
+- Best streak: ${session.bestStreak}
+- Average reaction time: ${avgMs ? (avgMs/1000).toFixed(2)+'s' : 'N/A'}
+ 
+ZONE PERFORMANCE (worst to best):
+${zoneData.map(z => `- ${z.zone}: ${z.pct}% (${z.hit}/${z.total} hits)${z.avgMs ? ', avg '+( z.avgMs/1000).toFixed(2)+'s' : ''}`).join('\n')}
+ 
+Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw JSON):
+{
+  "summary": "One sentence overall assessment of the session",
+  "weakest_zone": {
+    "zone": "zone name",
+    "why": "brief reason why this is weak (footwork pattern, body positioning etc)",
+    "drill": "specific drill name",
+    "drill_desc": "exactly how to do the drill in 2 sentences",
+    "exercise": "specific physical exercise to improve this",
+    "exercise_desc": "exactly how to do it in 1 sentence"
+  },
+  "best_zone": {
+    "zone": "zone name",
+    "praise": "what they're doing well"
+  },
+  "reaction_tip": "specific tip to improve reaction time based on their data",
+  "focus_next": "one specific thing to focus on in the next session"
+}`
+ 
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    })
+ 
+    const data = await response.json()
+    const raw  = data.content?.[0]?.text || ''
+ 
+    let fb
+    try {
+      fb = JSON.parse(raw.trim())
+    } catch {
+      // If JSON parse fails, show raw text
+      feedbackContent.innerHTML = `<div class="ai-raw">${raw}</div>`
+      return
+    }
+ 
+    feedbackContent.innerHTML = `
+      <div class="ai-summary">${fb.summary}</div>
+ 
+      <div class="ai-cards">
+ 
+        <div class="ai-card ai-card--weak">
+          <div class="ai-card-header">
+            <span class="ai-badge ai-badge--weak">⚠ Weakest Zone</span>
+            <span class="ai-zone-name">${fb.weakest_zone.zone}</span>
+          </div>
+          <p class="ai-why">${fb.weakest_zone.why}</p>
+          <div class="ai-improvement">
+            <div class="ai-improve-item">
+              <div class="ai-improve-label">🏸 Drill</div>
+              <div class="ai-improve-title">${fb.weakest_zone.drill}</div>
+              <div class="ai-improve-desc">${fb.weakest_zone.drill_desc}</div>
+            </div>
+            <div class="ai-improve-item">
+              <div class="ai-improve-label">💪 Exercise</div>
+              <div class="ai-improve-title">${fb.weakest_zone.exercise}</div>
+              <div class="ai-improve-desc">${fb.weakest_zone.exercise_desc}</div>
+            </div>
+          </div>
+        </div>
+ 
+        <div class="ai-card ai-card--best">
+          <div class="ai-card-header">
+            <span class="ai-badge ai-badge--best">✓ Strongest Zone</span>
+            <span class="ai-zone-name">${fb.best_zone.zone}</span>
+          </div>
+          <p class="ai-why">${fb.best_zone.praise}</p>
+        </div>
+ 
+      </div>
+ 
+      <div class="ai-tips">
+        <div class="ai-tip">
+          <div class="ai-tip-icon">⚡</div>
+          <div>
+            <div class="ai-tip-label">Reaction Tip</div>
+            <div class="ai-tip-text">${fb.reaction_tip}</div>
+          </div>
+        </div>
+        <div class="ai-tip">
+          <div class="ai-tip-icon">🎯</div>
+          <div>
+            <div class="ai-tip-label">Focus Next Session</div>
+            <div class="ai-tip-text">${fb.focus_next}</div>
+          </div>
+        </div>
+      </div>`
+ 
+  } catch (err) {
+    feedbackContent.innerHTML = `<div class="ai-error">Couldn't load feedback — check your connection.</div>`
+    console.warn('[AI feedback]', err)
+  }
+}
+
 // ── Buttons ────────────────────────────────────────────────────
 document.getElementById('btn-start-session').addEventListener('click', async () => {
   setupScreen.classList.remove('active')
