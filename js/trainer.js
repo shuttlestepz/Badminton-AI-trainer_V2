@@ -476,7 +476,23 @@ function endSession() {
   if (animFrameId) cancelAnimationFrame(animFrameId)
 
   // Save to auth system
-  try { AUTH.recordSession(session); AUTH.incrementSession() } catch(e){}
+try {
+  const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
+  const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
+  import('./js/database.js').then(m => {
+    const DB = m.default
+    DB.saveSession({
+      mode: 'footwork', drill: 'footwork',
+      score: session.score, hits: session.hits,
+      totalRounds: session.totalRounds,
+      bestStreak: session.bestStreak,
+      accuracy: acc, xpEarned,
+      roundTimings: session.roundTimings,
+      dirStats: session.dirStats,
+    })
+    DB.awardXP(xpEarned)
+  })
+} catch(e){ console.warn('session save failed:', e) }
 
   showResults()
 }
@@ -534,7 +550,23 @@ document.getElementById('btn-stop').addEventListener('click', ()=>{
   poseRunning=false
   if (animFrameId) cancelAnimationFrame(animFrameId)
   if (video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop())
-  try { AUTH.recordSession(session); AUTH.incrementSession() } catch(e){}
+   try {
+     const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
+     const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
+     import('./js/database.js').then(m => {
+       const DB = m.default
+       DB.saveSession({
+         mode: 'footwork', drill: 'footwork',
+         score: session.score, hits: session.hits,
+         totalRounds: session.totalRounds,
+         bestStreak: session.bestStreak,
+         accuracy: acc, xpEarned,
+         roundTimings: session.roundTimings,
+         dirStats: session.dirStats,
+       })
+       DB.awardXP(xpEarned)
+     })
+   } catch(e){ console.warn('session save failed:', e) }
   showResults()
 })
 
@@ -545,11 +577,7 @@ document.getElementById('btn-again').addEventListener('click', ()=>{
   centerX=null; centerY=null; hipX=null; hipY=null
   smoothHipX=null; smoothHipY=null; smoothFeetX=null; smoothFeetY=null
   // Check limit
-  if (!AUTH.canStartSession()) {
-    document.getElementById('lock-overlay').classList.remove('hidden')
-  } else {
-    setupScreen.classList.add('active')
-  }
+ setupScreen.classList.add('active')
 })
 
 document.addEventListener('keydown', e => {
