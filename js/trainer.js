@@ -525,6 +525,7 @@ function showResults() {
     </div>`
   })
   speak(grade.split('—')[1]?.trim()||grade)
+   getAIFeedback()
 }
 
 async function getAIFeedback() {
