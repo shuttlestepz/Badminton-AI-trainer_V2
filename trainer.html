@@ -243,6 +243,92 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
   .tstat{padding:5px 8px;min-width:50px}
   .tstat-val{font-size:18px}
 }
+/* ── AI Feedback ── */
+#ai-feedback-section {
+  display: none;
+  margin-top: 24px;
+}
+.ai-feedback-title {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 2.5px;
+  text-transform: uppercase; color: var(--text3); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.ai-feedback-title::before {
+  content: ''; display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent);
+  animation: pulse-dot 1.6s ease infinite;
+}
+.ai-loading {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--text2); font-size: 13px; padding: 20px 0;
+}
+.ai-spinner {
+  width: 18px; height: 18px; border: 2px solid var(--border2);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+ 
+.ai-summary {
+  font-size: 14px; color: var(--text); line-height: 1.6;
+  margin-bottom: 16px; padding: 14px 16px;
+  background: var(--accent-dim); border: 1px solid var(--border2);
+  border-radius: var(--r-lg);
+}
+ 
+.ai-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+@media (max-width: 600px) { .ai-cards { grid-template-columns: 1fr; } }
+ 
+.ai-card {
+  border-radius: var(--r-lg); padding: 16px;
+  border: 1px solid var(--border);
+}
+.ai-card--weak { background: rgba(224,72,72,.06); border-color: rgba(224,72,72,.2); }
+.ai-card--best { background: var(--accent-dim); border-color: var(--border2); }
+ 
+.ai-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.ai-badge {
+  font-family: var(--font-mono); font-size: 8px; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 20px;
+}
+.ai-badge--weak { background: rgba(224,72,72,.15); color: var(--red); border: 1px solid rgba(224,72,72,.3); }
+.ai-badge--best { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--border2); }
+ 
+.ai-zone-name {
+  font-family: var(--font-display); font-size: 13px; font-weight: 800;
+  letter-spacing: .5px; color: var(--text);
+}
+.ai-why { font-size: 12px; color: var(--text2); line-height: 1.55; margin-bottom: 12px; }
+ 
+.ai-improvement { display: flex; flex-direction: column; gap: 10px; }
+.ai-improve-item {
+  background: rgba(5,9,8,.5); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 10px 12px;
+}
+.ai-improve-label {
+  font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text3); margin-bottom: 4px;
+}
+.ai-improve-title { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.ai-improve-desc  { font-size: 11.5px; color: var(--text2); line-height: 1.5; }
+ 
+.ai-tips { display: flex; flex-direction: column; gap: 8px; }
+.ai-tip {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 12px 14px;
+}
+.ai-tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.ai-tip-label {
+  font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text3); margin-bottom: 4px;
+}
+.ai-tip-text  { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+.ai-error { font-size: 13px; color: var(--text3); padding: 16px 0; }
+.ai-raw   { font-size: 12px; color: var(--text2); line-height: 1.6; white-space: pre-wrap; }
 </style>
 </head>
 <body>
@@ -427,6 +513,10 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
         <div class="card card-sm" style="margin-bottom:20px">
           <div class="card-hd">DIRECTION BREAKDOWN</div>
           <div id="r-bd"></div>
+          <div id="ai-feedback-section">
+          <div class="ai-feedback-title">AI Coach Feedback</div>
+          <div id="ai-feedback-content"></div>
+        </div>
         </div>
         <div class="r-actions">
           <button class="btn-primary" id="btn-again" style="flex:1">↺ Train Again</button>
