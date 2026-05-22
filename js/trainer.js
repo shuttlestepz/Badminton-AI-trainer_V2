@@ -479,7 +479,7 @@ function endSession() {
 try {
   const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
   const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
-  import('./js/database.js').then(m => {
+  import('./database.js').then(m => {
     const DB = m.default
     DB.saveSession({
       mode: 'footwork', drill: 'footwork',
