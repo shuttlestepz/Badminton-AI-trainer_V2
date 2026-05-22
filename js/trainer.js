@@ -529,7 +529,7 @@ function showResults() {
 // ── Gemini AI Feedback ─────────────────────────────────────────
 // ✅ Replaces Anthropic API — no proxy needed, works from GitHub Pages
 const GEMINI_KEY = 'AIzaSyCVw0hw9hD7I9b75jdiaE2AIPkCxto9qQM'
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`
 
 async function getAIFeedback() {
   const feedbackSection = document.getElementById('ai-feedback-section')
@@ -706,7 +706,7 @@ document.getElementById('btn-stop').addEventListener('click', ()=>{
   try {
     const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
     const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
-    import('./js/database.js').then(m => {
+    import('./database.js').then(m => {
       const DB = m.default
       DB.saveSession({
         mode: 'footwork', drill: 'footwork',
