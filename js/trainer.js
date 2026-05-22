@@ -529,7 +529,7 @@ function showResults() {
 // ── Gemini AI Feedback ─────────────────────────────────────────
 // ✅ Replaces Anthropic API — no proxy needed, works from GitHub Pages
 const GEMINI_KEY = 'AIzaSyD6qjA1d5RFlaf7VXlhZpxjLNtfiqooRLY'
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`
 
 async function getAIFeedback() {
   const feedbackSection = document.getElementById('ai-feedback-section')
