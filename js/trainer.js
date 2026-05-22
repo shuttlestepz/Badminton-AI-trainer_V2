@@ -294,7 +294,6 @@ function drawTargetZone(dir) {
   ctx.strokeStyle='rgba(56,210,90,0.8)'; ctx.lineWidth=2
   ctx.setLineDash([6,4]); ctx.strokeRect(tx-tw,ty-th,tw*2,th*2); ctx.setLineDash([])
   ctx.fillStyle='rgba(56,210,90,0.07)'; ctx.fillRect(tx-tw,ty-th,tw*2,th*2)
-  // Corners
   const cs=8, corners=[[tx-tw,ty-th,1,1],[tx+tw,ty-th,-1,1],[tx-tw,ty+th,1,-1],[tx+tw,ty+th,-1,-1]]
   ctx.strokeStyle='rgba(56,210,90,0.9)'; ctx.lineWidth=2.5
   for (const [cx,cy,sx,sy] of corners) {
@@ -475,24 +474,23 @@ function endSession() {
   poseRunning=false
   if (animFrameId) cancelAnimationFrame(animFrameId)
 
-  // Save to auth system
-try {
-  const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
-  const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
-  import('./database.js').then(m => {
-    const DB = m.default
-    DB.saveSession({
-      mode: 'footwork', drill: 'footwork',
-      score: session.score, hits: session.hits,
-      totalRounds: session.totalRounds,
-      bestStreak: session.bestStreak,
-      accuracy: acc, xpEarned,
-      roundTimings: session.roundTimings,
-      dirStats: session.dirStats,
+  try {
+    const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
+    const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
+    import('./database.js').then(m => {
+      const DB = m.default
+      DB.saveSession({
+        mode: 'footwork', drill: 'footwork',
+        score: session.score, hits: session.hits,
+        totalRounds: session.totalRounds,
+        bestStreak: session.bestStreak,
+        accuracy: acc, xpEarned,
+        roundTimings: session.roundTimings,
+        dirStats: session.dirStats,
+      })
+      DB.awardXP(xpEarned)
     })
-    DB.awardXP(xpEarned)
-  })
-} catch(e){ console.warn('session save failed:', e) }
+  } catch(e){ console.warn('session save failed:', e) }
 
   showResults()
 }
@@ -525,21 +523,26 @@ function showResults() {
     </div>`
   })
   speak(grade.split('—')[1]?.trim()||grade)
-   getAIFeedback()
+  getAIFeedback()
 }
+
+// ── Gemini AI Feedback ─────────────────────────────────────────
+// ✅ Replaces Anthropic API — no proxy needed, works from GitHub Pages
+const GEMINI_KEY = 'AIzaSyCVw0hw9hD7I9b75jdiaE2AIPkCxto9qQM'
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`
 
 async function getAIFeedback() {
   const feedbackSection = document.getElementById('ai-feedback-section')
   const feedbackContent = document.getElementById('ai-feedback-content')
   if (!feedbackSection || !feedbackContent) return
- 
+
   feedbackSection.style.display = 'block'
   feedbackContent.innerHTML = `
     <div class="ai-loading">
       <div class="ai-spinner"></div>
       <span>Analysing your session…</span>
     </div>`
- 
+
   // Build zone performance summary
   const zoneData = Object.entries(session.dirStats).map(([zone, s]) => ({
     zone,
@@ -548,26 +551,24 @@ async function getAIFeedback() {
     pct: s.total > 0 ? Math.round((s.hit / s.total) * 100) : 0,
     avgMs: s.totalMs && s.hit > 0 ? Math.round(s.totalMs / s.hit) : null,
   })).sort((a, b) => a.pct - b.pct)
- 
-  const worst = zoneData.slice(0, 2)
-  const best  = zoneData.slice(-2).reverse()
+
   const acc   = session.totalRounds > 0 ? Math.round(session.hits / session.totalRounds * 100) : 0
   const avgMs = session.roundTimings.length
     ? Math.round(session.roundTimings.reduce((a, b) => a + b, 0) / session.roundTimings.length)
     : null
- 
+
   const prompt = `You are an expert badminton footwork coach. Analyse this training session and give specific, actionable feedback.
- 
+
 SESSION DATA:
 - Difficulty: ${session.difficulty || 'medium'}
 - Total rounds: ${session.totalRounds}
 - Accuracy: ${acc}%
 - Best streak: ${session.bestStreak}
 - Average reaction time: ${avgMs ? (avgMs/1000).toFixed(2)+'s' : 'N/A'}
- 
+
 ZONE PERFORMANCE (worst to best):
-${zoneData.map(z => `- ${z.zone}: ${z.pct}% (${z.hit}/${z.total} hits)${z.avgMs ? ', avg '+( z.avgMs/1000).toFixed(2)+'s' : ''}`).join('\n')}
- 
+${zoneData.map(z => `- ${z.zone}: ${z.pct}% (${z.hit}/${z.total} hits)${z.avgMs ? ', avg '+(z.avgMs/1000).toFixed(2)+'s' : ''}`).join('\n')}
+
 Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw JSON):
 {
   "summary": "One sentence overall assessment of the session",
@@ -586,35 +587,46 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
   "reaction_tip": "specific tip to improve reaction time based on their data",
   "focus_next": "one specific thing to focus on in the next session"
 }`
- 
+
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // ── Gemini API call ──────────────────────────────────────
+    const response = await fetch(GEMINI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
+      })
     })
- 
+
+    if (!response.ok) {
+      const errData = await response.json()
+      throw new Error(errData?.error?.message || `HTTP ${response.status}`)
+    }
+
     const data = await response.json()
-    const raw  = data.content?.[0]?.text || ''
- 
+
+    // ── Gemini response format (different from Claude) ───────
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+
+    // Strip any markdown fences Gemini might wrap around JSON
+    const cleaned = raw.replace(/```json|```/g, '').trim()
+
     let fb
     try {
-      fb = JSON.parse(raw.trim())
+      fb = JSON.parse(cleaned)
     } catch {
-      // If JSON parse fails, show raw text
+      // If JSON parse fails, show raw text gracefully
       feedbackContent.innerHTML = `<div class="ai-raw">${raw}</div>`
       return
     }
- 
+
+    // ── Render feedback (identical to original layout) ───────
     feedbackContent.innerHTML = `
       <div class="ai-summary">${fb.summary}</div>
- 
+
       <div class="ai-cards">
- 
+
         <div class="ai-card ai-card--weak">
           <div class="ai-card-header">
             <span class="ai-badge ai-badge--weak">⚠ Weakest Zone</span>
@@ -634,7 +646,7 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
             </div>
           </div>
         </div>
- 
+
         <div class="ai-card ai-card--best">
           <div class="ai-card-header">
             <span class="ai-badge ai-badge--best">✓ Strongest Zone</span>
@@ -642,9 +654,9 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
           </div>
           <p class="ai-why">${fb.best_zone.praise}</p>
         </div>
- 
+
       </div>
- 
+
       <div class="ai-tips">
         <div class="ai-tip">
           <div class="ai-tip-icon">⚡</div>
@@ -661,9 +673,9 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
           </div>
         </div>
       </div>`
- 
+
   } catch (err) {
-    feedbackContent.innerHTML = `<div class="ai-error">Couldn't load feedback — check your connection.</div>`
+    feedbackContent.innerHTML = `<div class="ai-error">Couldn't load AI feedback — ${err.message}</div>`
     console.warn('[AI feedback]', err)
   }
 }
@@ -691,34 +703,32 @@ document.getElementById('btn-stop').addEventListener('click', ()=>{
   poseRunning=false
   if (animFrameId) cancelAnimationFrame(animFrameId)
   if (video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop())
-   try {
-     const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
-     const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
-     import('./js/database.js').then(m => {
-       const DB = m.default
-       DB.saveSession({
-         mode: 'footwork', drill: 'footwork',
-         score: session.score, hits: session.hits,
-         totalRounds: session.totalRounds,
-         bestStreak: session.bestStreak,
-         accuracy: acc, xpEarned,
-         roundTimings: session.roundTimings,
-         dirStats: session.dirStats,
-       })
-       DB.awardXP(xpEarned)
-     })
-   } catch(e){ console.warn('session save failed:', e) }
+  try {
+    const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
+    const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
+    import('./js/database.js').then(m => {
+      const DB = m.default
+      DB.saveSession({
+        mode: 'footwork', drill: 'footwork',
+        score: session.score, hits: session.hits,
+        totalRounds: session.totalRounds,
+        bestStreak: session.bestStreak,
+        accuracy: acc, xpEarned,
+        roundTimings: session.roundTimings,
+        dirStats: session.dirStats,
+      })
+      DB.awardXP(xpEarned)
+    })
+  } catch(e){ console.warn('session save failed:', e) }
   showResults()
 })
 
 document.getElementById('btn-again').addEventListener('click', ()=>{
   resultScreen.classList.remove('active')
-  // Reset pose tracking
   calibrated=false; calibFrames=0; calibSumX=0; calibSumY=0
   centerX=null; centerY=null; hipX=null; hipY=null
   smoothHipX=null; smoothHipY=null; smoothFeetX=null; smoothFeetY=null
-  // Check limit
- setupScreen.classList.add('active')
+  setupScreen.classList.add('active')
 })
 
 document.addEventListener('keydown', e => {
