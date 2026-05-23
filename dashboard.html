@@ -2557,6 +2557,25 @@ DB.onAuthReady(async (firebaseUser) => {
     }
 
     DB.listenSessions(sessions => renderSessions(sessions))
+     // Load AI tips
+   DB.getAITips(firebaseUser.uid).then(tips => {
+     if (!tips) return
+     const grid = document.getElementById('tips-grid')
+     if (!grid) return
+     grid.innerHTML = `
+       <div class="tip-card anim-up anim-d1">
+         <div class="tip-icon">🎯</div>
+         <div class="tip-text"><strong>Focus:</strong> ${tips.focusNext}</div>
+       </div>
+       <div class="tip-card anim-up anim-d2">
+         <div class="tip-icon">⚠️</div>
+         <div class="tip-text"><strong>Weak zone (${tips.weakZone}):</strong> ${tips.weakDrillDesc}</div>
+       </div>
+       <div class="tip-card anim-up anim-d3">
+         <div class="tip-icon">⚡</div>
+         <div class="tip-text"><strong>Reaction:</strong> ${tips.reactionTip}</div>
+       </div>`
+   }).catch(() => {})
 
     DB.listenUserProfile(data => {
       renderXPData(data.xp||0, data.level||1)
