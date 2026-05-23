@@ -623,6 +623,20 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
     }
 
     // ── Render feedback (identical to original layout) ───────
+      // Save AI tips to Firestore for dashboard
+   import('./database.js').then(m => {
+     m.default.saveAITips({
+       summary: fb.summary,
+       weakZone: fb.weakest_zone.zone,
+       weakDrill: fb.weakest_zone.drill,
+       weakDrillDesc: fb.weakest_zone.drill_desc,
+       bestZone: fb.best_zone.zone,
+       bestPraise: fb.best_zone.praise,
+       reactionTip: fb.reaction_tip,
+       focusNext: fb.focus_next,
+       createdAt: new Date(),
+     }).catch(() => {})
+   })
     feedbackContent.innerHTML = `
       <div class="ai-summary">${fb.summary}</div>
 
