@@ -612,11 +612,12 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
     // Strip any markdown fences Gemini might wrap around JSON
     const cleaned = raw.replace(/```json|```/g, '').trim()
 
-    let fb
+   let fb
     try {
-      fb = JSON.parse(cleaned)
+      const match = cleaned.match(/\{[\s\S]*\}/)
+      if (!match) throw new Error('No JSON found')
+      fb = JSON.parse(match[0])
     } catch {
-      // If JSON parse fails, show raw text gracefully
       feedbackContent.innerHTML = `<div class="ai-raw">${raw}</div>`
       return
     }
