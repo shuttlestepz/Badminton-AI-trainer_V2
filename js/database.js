@@ -453,6 +453,17 @@ window.addEventListener('beforeunload', _teardownAllListeners)
 /* ═══════════════════════════════════════════════════════════════
    12. DEFAULT EXPORT
 ═══════════════════════════════════════════════════════════════ */
+export async function saveAITips(tips) {
+  const uid = _requireUID()
+  await setDoc(doc(db, 'users', uid, 'meta', 'ai_tips'), tips)
+}
+
+export async function getAITips(uid = null) {
+  const id = uid || _requireUID()
+  const snap = await getDoc(doc(db, 'users', id, 'meta', 'ai_tips'))
+  return snap.exists() ? snap.data() : null
+}
+
 export default {
   registerUser, loginUser, logoutUser, resetPassword, onAuthReady, getCurrentUser,
   getUserProfile, updateUserProfile, listenUserProfile,
@@ -461,5 +472,5 @@ export default {
   listenLeaderboard, getUserRank,
   getSettings, saveSettings, listenSettings,
   getStudentsBySchoolCode, listenStudentsBySchoolCode,
-  unsubscribeAll, unsubscribe, resetUserData,
+  unsubscribeAll, unsubscribe, resetUserData,saveAITips, getAITips,
 }
