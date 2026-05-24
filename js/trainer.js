@@ -528,8 +528,7 @@ function showResults() {
 
 // ── Gemini AI Feedback ─────────────────────────────────────────
 // ✅ Replaces Anthropic API — no proxy needed, works from GitHub Pages
-const GEMINI_KEY = 'AIzaSyBfEDXZEWHQe9-dn1Ff-D9AgAzpirumX7c'
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`
+const GROQ_URL = 'https://plain-scene-04e6.shuttlestepz.workers.dev'
 
 async function getAIFeedback() {
   const feedbackSection = document.getElementById('ai-feedback-section')
@@ -590,14 +589,13 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
 
   try {
     // ── Gemini API call ──────────────────────────────────────
-    const response = await fetch(GEMINI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
-      })
-    })
+   const response = await fetch(GROQ_URL, {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({
+       messages: [{ role: 'user', content: prompt }]
+     })
+   })
 
     if (!response.ok) {
       const errData = await response.json()
@@ -607,7 +605,7 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
     const data = await response.json()
 
     // ── Gemini response format (different from Claude) ───────
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    const raw = data.choices?.[0]?.message?.content || ''
 
     // Strip any markdown fences Gemini might wrap around JSON
     const cleaned = raw.replace(/```json|```/g, '').trim()
