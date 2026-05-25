@@ -226,6 +226,13 @@ async function detectPose() {
         } else {
           poseBadge.textContent='TRACKING'
           poseBadge.classList.remove('lost'); poseBadge.classList.add('tracking')
+
+          // Resume timer if pose was lost
+          if (poseLostAt) {
+            poseLostAt = null
+            if (session.active) feedback.textContent = 'Move to zone!'
+          }
+
           if (session.active) checkZone(hipX,hipY,feetX,feetY)
         }
 
@@ -254,10 +261,21 @@ function drawTrackingPoints() {
   }
 }
 
+let poseLostAt = null
+const POSE_GRACE_MS = 1000 // pause timer for 1.5s before counting as miss
+
 function lostPose() {
   hipX=null;hipY=null;feetX=null;feetY=null
   poseBadge.textContent='NO PERSON'
   poseBadge.classList.remove('tracking'); poseBadge.classList.add('lost')
+
+  // Pause the round timer while pose is lost
+  if (session.active && !poseLostAt) {
+    poseLostAt = Date.now()
+    // Extend timerEnd by grace period so round doesn't auto-fail immediately
+    session.timerEnd += POSE_GRACE_MS
+    feedback.textContent = '⚠ Step back into frame!'
+  }
 }
 
 // ── Skeleton ───────────────────────────────────────────────────
