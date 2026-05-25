@@ -80,6 +80,7 @@ document.querySelectorAll('.zg-btn').forEach(btn => {
 })
 
 // ── Thresholds ────────────────────────────────────────────────
+// ── Thresholds ────────────────────────────────────────────────
 const THRESH_X    = 0.12
 const THRESH_Y    = 0.10
 const SMOOTH_ALPHA= 0.4
@@ -95,6 +96,22 @@ let smoothFeetX= null, smoothFeetY= null
 function ema(prev, next) {
   return prev === null ? next : prev * (1 - SMOOTH_ALPHA) + next * SMOOTH_ALPHA
 }
+
+// ── Pose-loss pause system ─────────────────────────────────────
+let poseLost         = false
+let sessionPaused    = false
+let pausedAt         = 0
+let remainingMs      = 0
+let pauseCooldown    = false
+let scoringLocked    = false
+let activeTimerInterval = null
+
+const PAUSE_COOLDOWN_MS = 1200
+const FRAMES_TO_LOSE    = 8    // consecutive bad frames before pause
+const FRAMES_TO_GAIN    = 5    // consecutive good frames before resume
+
+let poseFramesBad  = 0
+let poseFramesGood = 0
 
 let session = {
   totalRounds:10, timePerDir:4, voiceOn:true, beepOn:true,
@@ -342,18 +359,6 @@ function setRing(frac,urgent=false) {
   tArc.style.strokeDashoffset = CIRC*(1-Math.max(0,Math.min(1,frac)))
   tArc.style.stroke = urgent ? 'var(--amber)' : 'var(--accent)'
 }
-
-function startRingTimer(ms) {
-  clearInterval(session.timerInterval)
-  session.timerEnd = Date.now()+ms
-  session.timerInterval = setInterval(()=>{
-    const rem=session.timerEnd-Date.now(), frac=rem/ms
-    tNum.textContent=Math.max(0,Math.ceil(rem/1000))
-    setRing(frac, frac<.3)
-    if (rem<=0) clearInterval(session.timerInterval)
-  },60)
-}
-
 // ── Dots ───────────────────────────────────────────────────────
 function buildDots(n) {
   pdots.innerHTML=''
@@ -393,27 +398,35 @@ function highlightZone(dir,cls) {
 let hitDetected=false, currentZoneCheckInterval=null
 
 function startRound() {
-  if (session.round>=session.totalRounds) { endSession(); return }
+  if (session.round >= session.totalRounds) { endSession(); return }
 
+  // ── Reset round flags ──
+  scoringLocked = false
+  hitDetected   = false
+  session.waitingForReturn = false
+  session.active = true
+
+  // ── Pick direction ──
   let dir
-  do { dir=activeZones[Math.floor(Math.random()*activeZones.length)] }
-  while (dir===session.currentDir && activeZones.length>1)
+  do { dir = activeZones[Math.floor(Math.random() * activeZones.length)] }
+  while (dir === session.currentDir && activeZones.length > 1)
 
-  session.currentDir=dir; session.active=true
-  session.waitingForReturn=false; hitDetected=false
-  session.roundStart=Date.now()
+  session.currentDir = dir
+  session.roundStart = Date.now()
 
-  dirText.textContent=dir; dirText.className='dir-text'
-  highlightZone(dir); feedback.textContent='Move to zone!'
-  startRingTimer(session.timePerDir*1000)
+  // ── UI ──
+  dirText.textContent = dir
+  dirText.className   = 'dir-text'
+  highlightZone(dir)
+  feedback.textContent = 'Move to zone!'
+
+  // ── Audio ──
   speak(dir.toLowerCase())
-  if (session.beepOn) setTimeout(()=>beep(660,.09),350)
+  if (session.beepOn) setTimeout(() => beep(660, .09), 350)
 
-  clearInterval(currentZoneCheckInterval)
-  currentZoneCheckInterval=setInterval(()=>{
-    if (!session.active) return
-    if (Date.now()>=session.timerEnd) { clearInterval(currentZoneCheckInterval); scoreRound(false) }
-  },80)
+  // ── Start safe timer (replaces startRingTimer + currentZoneCheckInterval) ──
+  const totalMs = session.timePerDir * 1000
+  startSafeTimer(totalMs)
 }
 
 function checkZone(hx,hy,fx,fy) {
@@ -431,7 +444,7 @@ function checkZone(hx,hy,fx,fy) {
 
 function scoreRound(hit, responseMs=null) {
   session.active=false
-  clearInterval(currentZoneCheckInterval); clearInterval(session.timerInterval)
+  stopSafeTimer()
   const dir=session.currentDir, rIdx=session.round
 
   if (!session.dirStats[dir]) session.dirStats[dir]={total:0,hit:0,totalMs:0}
@@ -488,10 +501,10 @@ function beginSession() {
 
 function endSession() {
   session.active=false
-  clearInterval(currentZoneCheckInterval); clearInterval(session.timerInterval)
+  stopSafeTimer()
   poseRunning=false
-  if (animFrameId) cancelAnimationFrame(animFrameId)
-
+  if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null }
+   
   try {
     const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
     const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
@@ -730,7 +743,7 @@ document.getElementById('btn-start-session').addEventListener('click', async () 
 
 document.getElementById('btn-stop').addEventListener('click', ()=>{
   session.active=false
-  clearInterval(currentZoneCheckInterval); clearInterval(session.timerInterval)
+  stopSafeTimer()
   poseRunning=false
   if (animFrameId) cancelAnimationFrame(animFrameId)
   if (video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop())
