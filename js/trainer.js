@@ -480,6 +480,8 @@ function scoreRound(hit, responseMs=null) {
 
 // ── Session ────────────────────────────────────────────────────
 function beginSession() {
+  resetPauseState()   // ← ADD at top
+
   session.totalRounds=parseInt(slRounds.value); session.timePerDir=parseInt(slTime.value)
   session.voiceOn=chkVoice.checked; session.beepOn=chkBeep.checked
   session.difficulty=selectedDiff
@@ -491,6 +493,8 @@ function beginSession() {
   dirText.textContent='GET READY'; dirText.className='dir-text'
   setRing(1); updateSpeedDisplay(null, session.timePerDir*1000)
   feedback.textContent=calibrated?'Starting in 2s…':'Stand still to calibrate…'
+  injectPauseOverlay()   // ← ADD before the interval
+
   const w=setInterval(()=>{ if(calibrated){ clearInterval(w); feedback.textContent='GO!'; setTimeout(startRound,600) } },300)
 }
 
