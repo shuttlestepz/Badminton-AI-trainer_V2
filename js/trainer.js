@@ -443,10 +443,14 @@ function checkZone(hx,hy,fx,fy) {
 }
 
 function scoreRound(hit, responseMs=null) {
-  session.active=false
-  stopSafeTimer()
-  const dir=session.currentDir, rIdx=session.round
+  // ── Race condition guard ──
+  if (scoringLocked) return
+  scoringLocked = true
 
+  session.active = false
+  stopSafeTimer()
+
+  const dir=session.currentDir, rIdx=session.round
   if (!session.dirStats[dir]) session.dirStats[dir]={total:0,hit:0,totalMs:0}
   session.dirStats[dir].total++
 
@@ -478,8 +482,12 @@ function scoreRound(hit, responseMs=null) {
     allZonePills()
     dirText.textContent=session.round>=session.totalRounds?'DONE!':'CENTRE'
     dirText.className='dir-text'; tNum.textContent='—'; setRing(1)
-    if (session.round>=session.totalRounds) setTimeout(endSession,800)
-    else setTimeout(startRound,1200)
+    if (session.round>=session.totalRounds) {
+      setTimeout(endSession,800)
+    } else {
+      scoringLocked = false   // ← unlock for next round
+      setTimeout(startRound,1200)
+    }
   },900)
 }
 
