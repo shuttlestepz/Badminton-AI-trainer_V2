@@ -2,24 +2,6 @@
    Shuttlestepz — database.js
    Firebase Firestore + Auth (Email/Password)
    Real-time listeners · Full data layer
-   ============================================================
-   COLLECTIONS LAYOUT
-   ──────────────────
-   users/{uid}
-     ├── profile      : { displayName, email, role, schoolCode, plan, createdAt }
-     ├── xp           : number
-     ├── level        : number
-     ├── totalSessions: number
-     ├── bestStreak   : number
-     └── settings     : { voiceOn, beepOn, preferredDiff, preferredGroup }
-
-   sessions/{uid}/records/{autoId}
-     ├── drill, mode, score, accuracy, hits, totalRounds
-     ├── bestStreak, xpEarned, reactionTime, createdAt
-     └── consistency, movement  (endurance only)
-
-   leaderboard/{uid}
-     ├── displayName, xp, level, role, updatedAt
    ============================================================ */
 
 import { initializeApp }                from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'
@@ -52,10 +34,7 @@ const FIREBASE_CONFIG = {
   measurementId     : 'G-Y0CJ1JVD45',
 }
 
-/* ── Creator emails (always get premium free) ───────────────── */
-const CREATOR_EMAILS = [
-  'techycoder1@gmail.com',   // ← your email — always premium
-]
+const CREATOR_EMAILS = ['techycoder1@gmail.com']
 
 const app  = initializeApp(FIREBASE_CONFIG)
 const auth = getAuth(app)
@@ -145,7 +124,6 @@ export function getCurrentUser() { return currentUser }
 ═══════════════════════════════════════════════════════════════ */
 
 export async function getUserProfile(uid = null) {
-  // Accept explicit uid OR fall back to currentUser
   const id = uid || currentUser?.uid
   if (!id) throw new Error('No authenticated user and no uid provided.')
   const snap = await getDoc(doc(db, 'users', id))
@@ -220,10 +198,15 @@ export async function getXPProgress(uid = null) {
 
 /* ═══════════════════════════════════════════════════════════════
    6. SESSIONS
+   ✅ FIX: saveSession no longer increments totalSessions here —
+   it's recalculated from actual records in getSessionStats
+   to keep dashboard + history always in sync 🎯
 ═══════════════════════════════════════════════════════════════ */
 
 export async function saveSession(sessionData) {
   const uid = _requireUID()
+
+  // Save session record
   const ref = await addDoc(collection(db, 'sessions', uid, 'records'), {
     drill        : sessionData.drill        || 'footwork',
     mode         : sessionData.mode         || 'footwork',
@@ -238,16 +221,27 @@ export async function saveSession(sessionData) {
     movement     : sessionData.movement     || null,
     createdAt    : serverTimestamp(),
   })
+
+  // ✅ Recalculate totalSessions from actual records count
+  // instead of blindly incrementing (avoids double-count bug)
+  const allSessions = await getDocs(collection(db, 'sessions', uid, 'records'))
+  const realCount   = allSessions.size
+
   const userRef  = doc(db, 'users', uid)
   const userSnap = await getDoc(userRef)
   const userData = userSnap.data()
   const newBest  = Math.max(userData.bestStreak || 0, sessionData.bestStreak || 0)
-  await updateDoc(userRef, { totalSessions: increment(1), bestStreak: newBest })
+
+  await updateDoc(userRef, {
+    totalSessions : realCount,  // ✅ always accurate
+    bestStreak    : newBest,
+  })
+
   return ref.id
 }
 
 export async function getSessions({ uid = null, limitN = 20 } = {}) {
-  const id   = uid || currentUser?.uid
+  const id = uid || currentUser?.uid
   if (!id) throw new Error('No authenticated user and no uid provided.')
   const q    = query(
     collection(db, 'sessions', id, 'records'),
@@ -275,18 +269,29 @@ export function listenSessions(callback, limitN = 20) {
 
 export async function getSessionStats(uid = null) {
   const id       = uid || _requireUID()
-  const snap     = await getDoc(doc(db, 'users', id))
-  const data     = snap.data()
-  const sessions = await getSessions({ uid: id, limitN: 200 })
-  const totalXP  = sessions.reduce((s, r) => s + (r.xpEarned || 0), 0)
+
+  // ✅ FIX: Calculate ALL stats from actual session records
+  // so dashboard + history page always show identical numbers 🎯
+  const sessions = await getSessions({ uid: id, limitN: 500 })
+
+  const totalXP  = sessions.reduce((s, r) => s + (r.xpEarned  || 0), 0)
   const avgScore = sessions.length
-    ? Math.round(sessions.reduce((s, r) => s + r.score, 0)    / sessions.length) : 0
+    ? Math.round(sessions.reduce((s, r) => s + (r.score    || 0), 0) / sessions.length) : 0
   const avgAcc   = sessions.length
-    ? Math.round(sessions.reduce((s, r) => s + r.accuracy, 0) / sessions.length) : 0
+    ? Math.round(sessions.reduce((s, r) => s + (r.accuracy || 0), 0) / sessions.length) : 0
+  const bestStreak = sessions.reduce((b, r) => Math.max(b, r.bestStreak || 0), 0)
+
+  // ✅ Also fix the user doc to stay in sync
+  const userRef = doc(db, 'users', id)
+  await updateDoc(userRef, {
+    totalSessions : sessions.length,
+    bestStreak,
+  }).catch(() => {}) // silent fail if not owner
+
   return {
-    totalSessions : data.totalSessions || 0,
-    totalXP,
-    bestStreak    : data.bestStreak    || 0,
+    totalSessions : sessions.length,  // ✅ from real records
+    totalXP,                          // ✅ from real records
+    bestStreak,                       // ✅ from real records
     avgScore,
     avgAccuracy   : avgAcc,
   }
@@ -415,9 +420,7 @@ export function unsubscribeAll() { _teardownAllListeners() }
 export function unsubscribe(key) { _teardown(key) }
 
 function _requireUID() {
-  // 1. Firebase auth state (most reliable)
   if (currentUser?.uid) return currentUser.uid
-  // 2. Session cache fallback (works before onAuthStateChanged fires)
   try {
     const cached = JSON.parse(sessionStorage.getItem('ssz_v2_user'))
     if (cached?.uid) return cached.uid
@@ -453,6 +456,7 @@ window.addEventListener('beforeunload', _teardownAllListeners)
 /* ═══════════════════════════════════════════════════════════════
    12. DEFAULT EXPORT
 ═══════════════════════════════════════════════════════════════ */
+
 export async function saveAITips(tips) {
   const uid = _requireUID()
   await setDoc(doc(db, 'users', uid, 'meta', 'ai_tips'), tips)
@@ -472,5 +476,5 @@ export default {
   listenLeaderboard, getUserRank,
   getSettings, saveSettings, listenSettings,
   getStudentsBySchoolCode, listenStudentsBySchoolCode,
-  unsubscribeAll, unsubscribe, resetUserData,saveAITips, getAITips,
+  unsubscribeAll, unsubscribe, resetUserData, saveAITips, getAITips,
 }
