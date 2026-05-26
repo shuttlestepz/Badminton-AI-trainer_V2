@@ -80,12 +80,11 @@ document.querySelectorAll('.zg-btn').forEach(btn => {
 })
 
 // ── Thresholds ────────────────────────────────────────────────
-// ── Thresholds ────────────────────────────────────────────────
 const THRESH_X    = 0.12
 const THRESH_Y    = 0.10
 const SMOOTH_ALPHA= 0.4
 
-// ── State ──────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────
 let detector    = null
 let animFrameId = null
 let poseRunning = false
@@ -97,28 +96,30 @@ function ema(prev, next) {
   return prev === null ? next : prev * (1 - SMOOTH_ALPHA) + next * SMOOTH_ALPHA
 }
 
-// ── Pose-loss pause system ─────────────────────────────────────
-let poseLost         = false
-let sessionPaused    = false
-let pausedAt         = 0
-let remainingMs      = 0
-let pauseCooldown    = false
-let scoringLocked    = false
+// ── Pose-loss pause system ────────────────────────────────────
+let poseLost            = false
+let sessionPaused       = false
+let pausedAt            = 0
+let remainingMs         = 0
+let pauseCooldown       = false
+let scoringLocked       = false
 let activeTimerInterval = null
+let timerEnd            = 0
 
 const PAUSE_COOLDOWN_MS = 1200
-const FRAMES_TO_LOSE    = 8    // consecutive bad frames before pause
-const FRAMES_TO_GAIN    = 5    // consecutive good frames before resume
+const FRAMES_TO_LOSE    = 8
+const FRAMES_TO_GAIN    = 5
 
 let poseFramesBad  = 0
 let poseFramesGood = 0
 
+// ── Session object ────────────────────────────────────────────
 let session = {
   totalRounds:10, timePerDir:4, voiceOn:true, beepOn:true,
   round:0, score:0, streak:0, bestStreak:0, hits:0,
   results:[], dirStats:{}, roundTimings:[], difficulty:'medium',
   active:false, currentDir:null, roundStart:0,
-  waitingForReturn:false, timerInterval:null, timerEnd:0,
+  waitingForReturn:false,
 }
 
 let centerX=null, centerY=null, frameW=640, frameH=480
@@ -126,7 +127,176 @@ let hipX=null, hipY=null, feetX=null, feetY=null
 let calibrated=false, calibFrames=0, calibSumX=0, calibSumY=0
 const CALIB_FRAMES = 25
 
-// ── Audio ──────────────────────────────────────────────────────
+// ── Safe Timer ────────────────────────────────────────────────
+function stopSafeTimer() {
+  if (activeTimerInterval !== null) {
+    clearInterval(activeTimerInterval)
+    activeTimerInterval = null
+  }
+}
+
+function startSafeTimer(totalMs) {
+  stopSafeTimer()
+  timerEnd    = Date.now() + totalMs
+  remainingMs = totalMs
+
+  activeTimerInterval = setInterval(() => {
+    if (sessionPaused || !session.active) return
+
+    const rem  = timerEnd - Date.now()
+    const frac = rem / totalMs
+    remainingMs = rem
+
+    tNum.textContent = Math.max(0, Math.ceil(rem / 1000))
+    setRing(Math.max(0, frac), frac < 0.3)
+
+    if (rem <= 0) {
+      stopSafeTimer()
+      if (!sessionPaused) scoreRound(false)
+    }
+  }, 80)
+}
+
+function freezeTimer() {
+  stopSafeTimer()
+  remainingMs = Math.max(0, timerEnd - Date.now())
+}
+
+function resumeTimer() {
+  if (remainingMs <= 0) {
+    scoreRound(false)
+    return
+  }
+  startSafeTimer(remainingMs)
+}
+
+// ── Pause overlay UI ─────────────────────────────────────────
+function injectPauseOverlay() {
+  const container = document.querySelector('.camera-area') ||
+                    document.querySelector('.tr-cam-wrap')
+  if (!container || document.getElementById('pose-pause-overlay')) return
+
+  // Inject CSS
+  if (!document.getElementById('pause-overlay-style')) {
+    const style = document.createElement('style')
+    style.id = 'pause-overlay-style'
+    style.textContent = `
+      .pose-pause-overlay {
+        position:absolute; inset:0; z-index:30;
+        background:rgba(5,9,7,0.82); backdrop-filter:blur(6px);
+        display:flex; align-items:center; justify-content:center;
+        transition:opacity 0.3s ease;
+      }
+      .pose-pause-overlay.hidden { display:none; }
+      .pose-pause-inner {
+        text-align:center; padding:32px;
+        animation:pausePulse 1.8s ease-in-out infinite;
+      }
+      @keyframes pausePulse {
+        0%,100%{transform:scale(1);opacity:1}
+        50%{transform:scale(1.03);opacity:0.85}
+      }
+      .pose-pause-icon { font-size:52px; margin-bottom:16px; filter:drop-shadow(0 0 16px rgba(57,224,122,0.5)); }
+      .pose-pause-title {
+        font-family:'Sora',sans-serif;
+        font-size:clamp(22px,5vw,38px); font-weight:900;
+        letter-spacing:3px; color:#39e07a;
+        text-shadow:0 0 30px rgba(57,224,122,0.6);
+        margin-bottom:10px;
+      }
+      .pose-pause-sub {
+        font-family:'DM Mono',monospace;
+        font-size:13px; letter-spacing:1.5px;
+        text-transform:uppercase; color:#7a9080; margin-bottom:20px;
+      }
+      .pose-pause-dots { display:flex; gap:8px; justify-content:center; }
+      .pose-pause-dots span {
+        width:8px; height:8px; border-radius:50%; background:#39e07a;
+        animation:dotBounce 1.2s ease-in-out infinite;
+      }
+      .pose-pause-dots span:nth-child(2){animation-delay:0.2s}
+      .pose-pause-dots span:nth-child(3){animation-delay:0.4s}
+      @keyframes dotBounce {
+        0%,100%{transform:translateY(0);opacity:0.4}
+        50%{transform:translateY(-8px);opacity:1}
+      }
+    `
+    document.head.appendChild(style)
+  }
+
+  const overlay = document.createElement('div')
+  overlay.id        = 'pose-pause-overlay'
+  overlay.className = 'pose-pause-overlay hidden'
+  overlay.innerHTML = `
+    <div class="pose-pause-inner">
+      <div class="pose-pause-icon">🏸</div>
+      <div class="pose-pause-title">PLAYER LOST</div>
+      <div class="pose-pause-sub">Return to frame to resume</div>
+      <div class="pose-pause-dots"><span></span><span></span><span></span></div>
+    </div>`
+  container.appendChild(overlay)
+}
+
+function showPauseOverlay(show) {
+  const overlay = document.getElementById('pose-pause-overlay')
+  if (!overlay) return
+  show ? overlay.classList.remove('hidden') : overlay.classList.add('hidden')
+}
+
+// ── Pause / Resume ────────────────────────────────────────────
+function pauseSession() {
+  if (sessionPaused || pauseCooldown || !session.active) return
+  sessionPaused = true
+  pausedAt      = Date.now()
+  pauseCooldown = true
+  freezeTimer()
+  showPauseOverlay(true)
+  setTimeout(() => { pauseCooldown = false }, PAUSE_COOLDOWN_MS)
+}
+
+function resumeSession() {
+  if (!sessionPaused || pauseCooldown) return
+  sessionPaused = false
+  pauseCooldown = true
+  showPauseOverlay(false)
+  resumeTimer()
+  setTimeout(() => { pauseCooldown = false }, PAUSE_COOLDOWN_MS)
+}
+
+// ── Debounced pose detection ──────────────────────────────────
+function onPoseDetected() {
+  poseFramesBad  = 0
+  poseFramesGood = Math.min(poseFramesGood + 1, FRAMES_TO_GAIN + 1)
+  if (poseLost && poseFramesGood >= FRAMES_TO_GAIN) {
+    poseLost = false
+    resumeSession()
+  }
+}
+
+function onPoseLost() {
+  poseFramesGood = 0
+  poseFramesBad  = Math.min(poseFramesBad + 1, FRAMES_TO_LOSE + 1)
+  if (!poseLost && poseFramesBad >= FRAMES_TO_LOSE && session.active) {
+    poseLost = true
+    pauseSession()
+  }
+}
+
+// ── Reset pause state ─────────────────────────────────────────
+function resetPauseState() {
+  poseLost       = false
+  sessionPaused  = false
+  pausedAt       = 0
+  remainingMs    = 0
+  pauseCooldown  = false
+  poseFramesBad  = 0
+  poseFramesGood = 0
+  scoringLocked  = false
+  stopSafeTimer()
+  showPauseOverlay(false)
+}
+
+// ── Audio ─────────────────────────────────────────────────────
 let audioCtx = null
 function getAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
@@ -146,7 +316,7 @@ function successSound(){ beep(660,.07,.3); setTimeout(()=>beep(880,.12,.35),70);
 function failSound(){    beep(220,.18,.35,'sawtooth'); setTimeout(()=>beep(180,.15,.2,'sawtooth'),120) }
 function calibSound(){   beep(440,.1,.2); setTimeout(()=>beep(660,.15,.25),100) }
 
-// ── Speech ─────────────────────────────────────────────────────
+// ── Speech ────────────────────────────────────────────────────
 let voices=[]
 window.speechSynthesis.onvoiceschanged = () => { const v=window.speechSynthesis.getVoices(); if(v.length) voices=v }
 setTimeout(() => { const v=window.speechSynthesis.getVoices(); if(v.length) voices=v }, 200)
@@ -164,7 +334,7 @@ function speak(text) {
   }, 60)
 }
 
-// ── Camera ─────────────────────────────────────────────────────
+// ── Camera ────────────────────────────────────────────────────
 async function startCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}})
   video.srcObject = stream
@@ -178,7 +348,7 @@ async function startCamera() {
   })
 }
 
-// ── Model ──────────────────────────────────────────────────────
+// ── Model ─────────────────────────────────────────────────────
 async function loadModel() {
   modelStatus.className = 'err'
   modelStatus.textContent = 'Loading MoveNet…'
@@ -198,7 +368,7 @@ async function loadModel() {
   }
 }
 
-// ── Pose loop ──────────────────────────────────────────────────
+// ── Pose loop ─────────────────────────────────────────────────
 async function detectPose() {
   if (!poseRunning) return
   try {
@@ -243,10 +413,10 @@ async function detectPose() {
         } else {
           poseBadge.textContent='TRACKING'
           poseBadge.classList.remove('lost'); poseBadge.classList.add('tracking')
-          onPoseDetected()   // ← replaces poseLostAt block
+          onPoseDetected()
           if (session.active) checkZone(hipX,hipY,feetX,feetY)
         }
-         
+
         drawSkeleton(kp)
         drawTrackingPoints()
         if (session.active && session.currentDir && calibrated) drawTargetZone(session.currentDir)
@@ -254,7 +424,7 @@ async function detectPose() {
     } else { lostPose() }
     ctx.restore()
   } catch(e){ ctx.restore() }
-  animFrameId = requestAnimationFrame(detectPose)   // keep as-is, safe here
+  animFrameId = requestAnimationFrame(detectPose)
 }
 
 function drawTrackingPoints() {
@@ -272,17 +442,14 @@ function drawTrackingPoints() {
   }
 }
 
-let poseLostAt = null
-const POSE_GRACE_MS = 1000 // pause timer for 1.5s before counting as miss
-
 function lostPose() {
   hipX=null; hipY=null; feetX=null; feetY=null
   poseBadge.textContent='NO PERSON'
   poseBadge.classList.remove('tracking'); poseBadge.classList.add('lost')
-  onPoseLost()   // ← debounced pause system
+  onPoseLost()
 }
 
-// ── Skeleton ───────────────────────────────────────────────────
+// ── Skeleton ──────────────────────────────────────────────────
 const SKEL_PAIRS=[[5,6],[5,7],[7,9],[6,8],[8,10],[11,12],[5,11],[6,12],[11,13],[13,15],[12,14],[14,16]]
 const JCOLORS={0:'#00e5ff',1:'#00e5ff',2:'#00e5ff',3:'#00e5ff',4:'#00e5ff',5:'#ffe033',6:'#ffe033',7:'#ffe033',8:'#ffe033',9:'#ffe033',10:'#ffe033',11:'#38d25a',12:'#38d25a',13:'#f09040',14:'#f09040',15:'#f09040',16:'#f09040'}
 const JRADII={0:4,1:3,2:3,3:3,4:3,5:6,6:6,7:5,8:5,9:5,10:5,11:9,12:9,13:7,14:7,15:7,16:7}
@@ -323,7 +490,7 @@ function drawTargetZone(dir) {
   }
 }
 
-// ── Zone math ──────────────────────────────────────────────────
+// ── Zone math ─────────────────────────────────────────────────
 function zoneTarget(dir,cx,cy,fw,fh) {
   const ox=fw*.20, oy=fh*.18
   return ({
@@ -339,14 +506,15 @@ function isInZone(dir,x,y) {
   return Math.abs(x-tx)<frameW*THRESH_X*1.6 && Math.abs(y-ty)<frameH*THRESH_Y*1.6
 }
 
-// ── Timer ring ─────────────────────────────────────────────────
+// ── Timer ring ────────────────────────────────────────────────
 const CIRC = 2*Math.PI*34
 
 function setRing(frac,urgent=false) {
   tArc.style.strokeDashoffset = CIRC*(1-Math.max(0,Math.min(1,frac)))
   tArc.style.stroke = urgent ? 'var(--amber)' : 'var(--accent)'
 }
-// ── Dots ───────────────────────────────────────────────────────
+
+// ── Dots ──────────────────────────────────────────────────────
 function buildDots(n) {
   pdots.innerHTML=''
   for (let i=0;i<n;i++) {
@@ -358,7 +526,7 @@ function setDot(i,cls) {
   if(d){d.classList.remove('ok','bad');d.classList.add(cls)}
 }
 
-// ── Stats display ──────────────────────────────────────────────
+// ── Stats display ─────────────────────────────────────────────
 function updateStats() {
   sRound.textContent=`${session.round}/${session.totalRounds}`
   sScore.textContent=session.score
@@ -381,19 +549,17 @@ function highlightZone(dir,cls) {
   if(e) e.classList.add(cls||'active')
 }
 
-// ── Round flow ─────────────────────────────────────────────────
-let hitDetected=false, currentZoneCheckInterval=null
+// ── Round flow ────────────────────────────────────────────────
+let hitDetected=false
 
 function startRound() {
   if (session.round >= session.totalRounds) { endSession(); return }
 
-  // ── Reset round flags ──
-  scoringLocked = false
-  hitDetected   = false
+  scoringLocked            = false
+  hitDetected              = false
   session.waitingForReturn = false
-  session.active = true
+  session.active           = true
 
-  // ── Pick direction ──
   let dir
   do { dir = activeZones[Math.floor(Math.random() * activeZones.length)] }
   while (dir === session.currentDir && activeZones.length > 1)
@@ -401,17 +567,14 @@ function startRound() {
   session.currentDir = dir
   session.roundStart = Date.now()
 
-  // ── UI ──
-  dirText.textContent = dir
-  dirText.className   = 'dir-text'
+  dirText.textContent  = dir
+  dirText.className    = 'dir-text'
   highlightZone(dir)
   feedback.textContent = 'Move to zone!'
 
-  // ── Audio ──
   speak(dir.toLowerCase())
   if (session.beepOn) setTimeout(() => beep(660, .09), 350)
 
-  // ── Start safe timer (replaces startRingTimer + currentZoneCheckInterval) ──
   const totalMs = session.timePerDir * 1000
   startSafeTimer(totalMs)
 }
@@ -424,13 +587,11 @@ function checkZone(hx,hy,fx,fy) {
   if (!ux||!uy) return
   if (isInZone(dir,ux,uy)) {
     hitDetected=true
-    clearInterval(currentZoneCheckInterval)
     scoreRound(true, Date.now()-session.roundStart)
   }
 }
 
 function scoreRound(hit, responseMs=null) {
-  // ── Race condition guard ──
   if (scoringLocked) return
   scoringLocked = true
 
@@ -472,15 +633,15 @@ function scoreRound(hit, responseMs=null) {
     if (session.round>=session.totalRounds) {
       setTimeout(endSession,800)
     } else {
-      scoringLocked = false   // ← unlock for next round
+      scoringLocked = false
       setTimeout(startRound,1200)
     }
   },900)
 }
 
-// ── Session ────────────────────────────────────────────────────
+// ── Session ───────────────────────────────────────────────────
 function beginSession() {
-  resetPauseState()   // ← ADD at top
+  resetPauseState()
 
   session.totalRounds=parseInt(slRounds.value); session.timePerDir=parseInt(slTime.value)
   session.voiceOn=chkVoice.checked; session.beepOn=chkBeep.checked
@@ -493,7 +654,7 @@ function beginSession() {
   dirText.textContent='GET READY'; dirText.className='dir-text'
   setRing(1); updateSpeedDisplay(null, session.timePerDir*1000)
   feedback.textContent=calibrated?'Starting in 2s…':'Stand still to calibrate…'
-  injectPauseOverlay()   // ← ADD before the interval
+  injectPauseOverlay()
 
   const w=setInterval(()=>{ if(calibrated){ clearInterval(w); feedback.textContent='GO!'; setTimeout(startRound,600) } },300)
 }
@@ -503,7 +664,7 @@ function endSession() {
   stopSafeTimer()
   poseRunning=false
   if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null }
-   
+
   try {
     const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
     const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
@@ -525,7 +686,7 @@ function endSession() {
   showResults()
 }
 
-// ── Results ────────────────────────────────────────────────────
+// ── Results ───────────────────────────────────────────────────
 function showResults() {
   resultScreen.classList.add('active')
   const acc=session.totalRounds>0?Math.round(session.hits/session.totalRounds*100):0
@@ -556,8 +717,7 @@ function showResults() {
   getAIFeedback()
 }
 
-// ── Gemini AI Feedback ─────────────────────────────────────────
-// ✅ Replaces Anthropic API — no proxy needed, works from GitHub Pages
+// ── Groq AI Feedback ──────────────────────────────────────────
 const GROQ_URL = 'https://plain-scene-04e6.shuttlestepz.workers.dev'
 
 async function getAIFeedback() {
@@ -572,11 +732,8 @@ async function getAIFeedback() {
       <span>Analysing your session…</span>
     </div>`
 
-  // Build zone performance summary
   const zoneData = Object.entries(session.dirStats).map(([zone, s]) => ({
-    zone,
-    hit: s.hit,
-    total: s.total,
+    zone, hit: s.hit, total: s.total,
     pct: s.total > 0 ? Math.round((s.hit / s.total) * 100) : 0,
     avgMs: s.totalMs && s.hit > 0 ? Math.round(s.totalMs / s.hit) : null,
   })).sort((a, b) => a.pct - b.pct)
@@ -618,14 +775,11 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
 }`
 
   try {
-    // ── Gemini API call ──────────────────────────────────────
-   const response = await fetch(GROQ_URL, {
-     method: 'POST',
-     headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify({
-       messages: [{ role: 'user', content: prompt }]
-     })
-   })
+    const response = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
+    })
 
     if (!response.ok) {
       const errData = await response.json()
@@ -633,14 +787,10 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
     }
 
     const data = await response.json()
-
-    // ── Gemini response format (different from Claude) ───────
-    const raw = data.choices?.[0]?.message?.content || ''
-
-    // Strip any markdown fences Gemini might wrap around JSON
+    const raw  = data.choices?.[0]?.message?.content || ''
     const cleaned = raw.replace(/```json|```/g, '').trim()
 
-   let fb
+    let fb
     try {
       const match = cleaned.match(/\{[\s\S]*\}/)
       if (!match) throw new Error('No JSON found')
@@ -650,26 +800,23 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
       return
     }
 
-    // ── Render feedback (identical to original layout) ───────
-      // Save AI tips to Firestore for dashboard
-   import('./database.js').then(m => {
-     m.default.saveAITips({
-       summary: fb.summary,
-       weakZone: fb.weakest_zone.zone,
-       weakDrill: fb.weakest_zone.drill,
-       weakDrillDesc: fb.weakest_zone.drill_desc,
-       bestZone: fb.best_zone.zone,
-       bestPraise: fb.best_zone.praise,
-       reactionTip: fb.reaction_tip,
-       focusNext: fb.focus_next,
-       createdAt: new Date(),
-     }).catch(() => {})
-   })
+    import('./database.js').then(m => {
+      m.default.saveAITips({
+        summary: fb.summary,
+        weakZone: fb.weakest_zone.zone,
+        weakDrill: fb.weakest_zone.drill,
+        weakDrillDesc: fb.weakest_zone.drill_desc,
+        bestZone: fb.best_zone.zone,
+        bestPraise: fb.best_zone.praise,
+        reactionTip: fb.reaction_tip,
+        focusNext: fb.focus_next,
+        createdAt: new Date(),
+      }).catch(() => {})
+    })
+
     feedbackContent.innerHTML = `
       <div class="ai-summary">${fb.summary}</div>
-
       <div class="ai-cards">
-
         <div class="ai-card ai-card--weak">
           <div class="ai-card-header">
             <span class="ai-badge ai-badge--weak">⚠ Weakest Zone</span>
@@ -689,7 +836,6 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
             </div>
           </div>
         </div>
-
         <div class="ai-card ai-card--best">
           <div class="ai-card-header">
             <span class="ai-badge ai-badge--best">✓ Strongest Zone</span>
@@ -697,9 +843,7 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
           </div>
           <p class="ai-why">${fb.best_zone.praise}</p>
         </div>
-
       </div>
-
       <div class="ai-tips">
         <div class="ai-tip">
           <div class="ai-tip-icon">⚡</div>
@@ -723,7 +867,7 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
   }
 }
 
-// ── Buttons ────────────────────────────────────────────────────
+// ── Buttons ───────────────────────────────────────────────────
 document.getElementById('btn-start-session').addEventListener('click', async () => {
   setupScreen.classList.remove('active')
   try { getAudio() } catch(e){}
@@ -740,11 +884,11 @@ document.getElementById('btn-start-session').addEventListener('click', async () 
   }
 })
 
-document.getElementById('btn-stop').addEventListener('click', ()=>{
-  session.active=false
+document.getElementById('btn-stop').addEventListener('click', () => {
+  session.active = false
   stopSafeTimer()
-  poseRunning=false
-  if (animFrameId) cancelAnimationFrame(animFrameId)
+  poseRunning = false
+  if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null }
   if (video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop())
   try {
     const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
@@ -766,8 +910,9 @@ document.getElementById('btn-stop').addEventListener('click', ()=>{
   showResults()
 })
 
-document.getElementById('btn-again').addEventListener('click', ()=>{
+document.getElementById('btn-again').addEventListener('click', () => {
   resultScreen.classList.remove('active')
+  resetPauseState()
   calibrated=false; calibFrames=0; calibSumX=0; calibSumY=0
   centerX=null; centerY=null; hipX=null; hipY=null
   smoothHipX=null; smoothHipY=null; smoothFeetX=null; smoothFeetY=null
