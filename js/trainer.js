@@ -142,14 +142,11 @@ function startSafeTimer(totalMs) {
 
   activeTimerInterval = setInterval(() => {
     if (sessionPaused || !session.active) return
-
     const rem  = timerEnd - Date.now()
     const frac = rem / totalMs
     remainingMs = rem
-
     tNum.textContent = Math.max(0, Math.ceil(rem / 1000))
     setRing(Math.max(0, frac), frac < 0.3)
-
     if (rem <= 0) {
       stopSafeTimer()
       if (!sessionPaused) scoreRound(false)
@@ -163,10 +160,7 @@ function freezeTimer() {
 }
 
 function resumeTimer() {
-  if (remainingMs <= 0) {
-    scoreRound(false)
-    return
-  }
+  if (remainingMs <= 0) { scoreRound(false); return }
   startSafeTimer(remainingMs)
 }
 
@@ -176,7 +170,6 @@ function injectPauseOverlay() {
                     document.querySelector('.tr-cam-wrap')
   if (!container || document.getElementById('pose-pause-overlay')) return
 
-  // Inject CSS
   if (!document.getElementById('pause-overlay-style')) {
     const style = document.createElement('style')
     style.id = 'pause-overlay-style'
@@ -282,7 +275,6 @@ function onPoseLost() {
   }
 }
 
-// ── Reset pause state ─────────────────────────────────────────
 function resetPauseState() {
   poseLost       = false
   sessionPaused  = false
@@ -575,8 +567,7 @@ function startRound() {
   speak(dir.toLowerCase())
   if (session.beepOn) setTimeout(() => beep(660, .09), 350)
 
-  const totalMs = session.timePerDir * 1000
-  startSafeTimer(totalMs)
+  startSafeTimer(session.timePerDir * 1000)
 }
 
 function checkZone(hx,hy,fx,fy) {
@@ -594,7 +585,6 @@ function checkZone(hx,hy,fx,fy) {
 function scoreRound(hit, responseMs=null) {
   if (scoringLocked) return
   scoringLocked = true
-
   session.active = false
   stopSafeTimer()
 
@@ -642,7 +632,6 @@ function scoreRound(hit, responseMs=null) {
 // ── Session ───────────────────────────────────────────────────
 function beginSession() {
   resetPauseState()
-
   session.totalRounds=parseInt(slRounds.value); session.timePerDir=parseInt(slTime.value)
   session.voiceOn=chkVoice.checked; session.beepOn=chkBeep.checked
   session.difficulty=selectedDiff
@@ -655,10 +644,10 @@ function beginSession() {
   setRing(1); updateSpeedDisplay(null, session.timePerDir*1000)
   feedback.textContent=calibrated?'Starting in 2s…':'Stand still to calibrate…'
   injectPauseOverlay()
-
   const w=setInterval(()=>{ if(calibrated){ clearInterval(w); feedback.textContent='GO!'; setTimeout(startRound,600) } },300)
 }
 
+// ── ✅ SINGLE save point — only endSession() saves + awards XP ──
 function endSession() {
   session.active=false
   stopSafeTimer()
@@ -884,30 +873,13 @@ document.getElementById('btn-start-session').addEventListener('click', async () 
   }
 })
 
+// ✅ btn-stop now just calls endSession() — no duplicate save! 🎯
 document.getElementById('btn-stop').addEventListener('click', () => {
-  session.active = false
   stopSafeTimer()
   poseRunning = false
   if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null }
   if (video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop())
-  try {
-    const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
-    const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
-    import('./database.js').then(m => {
-      const DB = m.default
-      DB.saveSession({
-        mode: 'footwork', drill: 'footwork',
-        score: session.score, hits: session.hits,
-        totalRounds: session.totalRounds,
-        bestStreak: session.bestStreak,
-        accuracy: acc, xpEarned,
-        roundTimings: session.roundTimings,
-        dirStats: session.dirStats,
-      })
-      DB.awardXP(xpEarned)
-    })
-  } catch(e){ console.warn('session save failed:', e) }
-  showResults()
+  endSession()
 })
 
 document.getElementById('btn-again').addEventListener('click', () => {
