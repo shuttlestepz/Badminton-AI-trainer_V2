@@ -894,3 +894,12 @@ document.getElementById('btn-again').addEventListener('click', () => {
 document.addEventListener('keydown', e => {
   if (e.key==='Escape') document.getElementById('btn-stop').click()
 })
+// Preload model silently on page open
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    poseDetection.createDetector(
+      poseDetection.SupportedModels.MoveNet,
+      { runtime:'tfjs', modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+    ).then(d => { detector = d; console.log('✅ Model preloaded!') })
+  }, 2000) // wait 2s after page load
+})
