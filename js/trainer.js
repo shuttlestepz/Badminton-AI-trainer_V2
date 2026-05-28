@@ -639,6 +639,7 @@ function scoreRound(hit, responseMs=null) {
 
 // ── Session ───────────────────────────────────────────────────
 function beginSession() {
+   import('./auth.js').then(m => m.default.incrementSession())
   resetPauseState()
   session.totalRounds=parseInt(slRounds.value); session.timePerDir=parseInt(slTime.value)
   session.voiceOn=chkVoice.checked; session.beepOn=chkBeep.checked
@@ -866,17 +867,37 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
 
 // ── Buttons ───────────────────────────────────────────────────
 document.getElementById('btn-start-session').addEventListener('click', async () => {
+  // ── Session limit check ──
+  const { default: AUTH } = await import('./auth.js')
+
+  if (!AUTH.canStartSession()) {
+    document.getElementById('lock-overlay').classList.remove('hidden')
+    setupScreen.classList.remove('active')
+    return
+  }
+
+  // ── Low sessions warning ──
+  const rem = AUTH.sessionsRemaining()
+  if (rem <= 2) {
+    const warn     = document.getElementById('limit-warn')
+    const warnText = document.getElementById('limit-warn-text')
+    if (warn && warnText) {
+      warnText.textContent = `${rem} free session${rem === 1 ? '' : 's'} remaining today`
+      warn.style.display = 'flex'
+    }
+  }
+
   setupScreen.classList.remove('active')
   try { getAudio() } catch(e){}
   try {
     await startCamera()
     await loadModel()
-    poseRunning=true
+    poseRunning = true
     detectPose()
-    setTimeout(beginSession,500)
+    setTimeout(beginSession, 500)
   } catch(err) {
-    modelStatus.textContent='Error: '+(err.message||err)
-    modelStatus.className='err'
+    modelStatus.textContent = 'Error: ' + (err.message || err)
+    modelStatus.className   = 'err'
     setupScreen.classList.add('active')
   }
 })
