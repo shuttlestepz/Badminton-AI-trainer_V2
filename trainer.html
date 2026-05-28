@@ -579,7 +579,10 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
             <label class="toggle"><input type="checkbox" id="chk-beep" checked><span class="toggle-slider"></span></label>
           </div>
         </div>
-
+        <div id="limit-warn" style="display:none;align-items:center;gap:10px;background:rgba(240,144,64,.08);border:1px solid rgba(240,144,64,.25);border-radius:10px;padding:10px 14px;margin-bottom:16px;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2 L14 13 H2 Z" stroke="var(--amber)" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 7v3M8 12v.5" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span id="limit-warn-text" style="font-family:var(--font-mono);font-size:10px;letter-spacing:1px;color:var(--amber);">—</span>
+        </div>
         <button class="btn-primary btn-full btn-lg" id="btn-start-session">▶ Start Training Session</button>
         <a href="dashboard.html" class="btn-ghost btn-full" style="margin-top:10px;text-align:center;display:block">← Back to Dashboard</a>
       </div>
