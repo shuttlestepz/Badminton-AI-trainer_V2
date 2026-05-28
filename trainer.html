@@ -423,17 +423,18 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
 <div class="trainer-root">
 
   <!-- Top bar -->
-  <button class="t-hamburger" id="t-hb" onclick="tDrawer()">
-    <span></span><span></span><span></span>
-  </button>
-  <a href="dashboard.html" class="train-brand">
-    <svg width="24" height="24" viewBox="0 0 34 34" fill="none">
-      <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
-      <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
-      <line x1="17" y1="22" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
-    </svg>
-    Shuttlestepz
-  </a>
+  <div class="train-bar">
+    <button class="t-hamburger" id="t-hb" onclick="tDrawer()">
+      <span></span><span></span><span></span>
+    </button>
+    <a href="dashboard.html" class="train-brand">
+      <svg width="24" height="24" viewBox="0 0 34 34" fill="none">
+        <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
+        <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
+        <line x1="17" y1="22" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      Shuttlestepz
+    </a>
     <div class="train-stats">
       <div class="tstat"><div class="tstat-val" id="s-round">—</div><div class="tstat-lbl">ROUND</div></div>
       <div class="tstat accent"><div class="tstat-val" id="s-score">0</div><div class="tstat-lbl">SCORE</div></div>
