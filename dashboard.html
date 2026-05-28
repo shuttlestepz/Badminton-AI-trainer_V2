@@ -1486,15 +1486,22 @@ html, body {
     </div>
 
     <div class="settings-group">
-      <div class="settings-label">Danger Zone</div>
-      <div class="settings-row">
-        <div class="settings-row-left">
-          <div class="settings-row-title">Log out</div>
-          <div class="settings-row-val">Ends your current session</div>
-        </div>
-        <button class="btn-danger" onclick="doLogout()">Log Out</button>
-      </div>
-    </div>
+     <div class="settings-label">Danger Zone</div>
+     <div class="settings-row">
+       <div class="settings-row-left">
+         <div class="settings-row-title">Cancel Premium</div>
+         <div class="settings-row-val">Downgrade to Free plan</div>
+       </div>
+       <button class="btn-danger" id="btn-cancel-premium" onclick="cancelPremium()">Cancel Plan</button>
+     </div>
+     <div class="settings-row">
+       <div class="settings-row-left">
+         <div class="settings-row-title">Log out</div>
+         <div class="settings-row-val">Ends your current session</div>
+       </div>
+       <button class="btn-danger" onclick="doLogout()">Log Out</button>
+     </div>
+   </div>
   </section>
 
 </main>
@@ -2353,6 +2360,27 @@ window.doLogout = async () => {
   window.location.href = 'login.html'
 }
 
+window.cancelPremium = async () => {
+  const confirmed = confirm('Cancel Premium and downgrade to Free plan? You will lose unlimited training access.')
+  if (!confirmed) return
+
+  const btn = document.getElementById('btn-cancel-premium')
+  if (btn) { btn.disabled = true; btn.textContent = 'Cancelling…' }
+
+  try {
+    await DB.updateUserProfile({ plan: 'free' })
+    tx('settings-plan', 'Free')
+    const upgBtn = document.getElementById('btn-upgrade')
+    if (upgBtn) upgBtn.style.display = 'block'
+    if (btn) { btn.disabled = false; btn.textContent = 'Cancel Plan' }
+    alert('Plan downgraded to Free.')
+  } catch(e) {
+    console.error('Cancel failed:', e)
+    if (btn) { btn.disabled = false; btn.textContent = 'Cancel Plan' }
+    alert('Something went wrong. Try again.')
+  }
+}
+
 const XP_THRESHOLDS = [0,500,1200,2200,3500,5200,7200,9800,13000,17000,22000]
 
 function renderXPData(xp, level) {
@@ -2550,6 +2578,7 @@ DB.onAuthReady(async (firebaseUser) => {
     tx('settings-plan',     plan==='premium'?'⭐ Premium':'Free')
 
     const upgBtn=$('btn-upgrade'); if(upgBtn&&plan==='premium') upgBtn.style.display='none'
+    const cancelBtn=$('btn-cancel-premium'); if(cancelBtn) cancelBtn.style.display=plan==='premium'?'block':'none'
 
     const navManage=$('nav-manage')
     if(navManage&&(role==='teacher'||role==='coach')){
