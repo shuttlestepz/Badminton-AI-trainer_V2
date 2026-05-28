@@ -330,6 +330,91 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
 .ai-tip-text  { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
 .ai-error { font-size: 13px; color: var(--text3); padding: 16px 0; }
 .ai-raw   { font-size: 12px; color: var(--text2); line-height: 1.6; white-space: pre-wrap; }
+/* ── HAMBURGER + DRAWER SIDEBAR ── */
+.t-hamburger {
+  width: 38px; height: 38px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-md); cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 5px; flex-shrink: 0; transition: border-color .18s;
+}
+.t-hamburger:hover { border-color: var(--border2); }
+.t-hamburger span {
+  display: block; width: 16px; height: 1.5px;
+  background: var(--text2); border-radius: 2px;
+  transition: transform .25s, opacity .2s, background .18s;
+}
+.t-hamburger:hover span { background: var(--text); }
+.t-hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.t-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.t-hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+.t-drawer {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: 260px; z-index: 200;
+  background: var(--bg2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform .28s cubic-bezier(.4,0,.2,1), box-shadow .28s;
+  will-change: transform;
+}
+.t-drawer.open {
+  transform: translateX(0);
+  box-shadow: 4px 0 48px rgba(0,0,0,.6);
+}
+.t-drawer-top {
+  flex: 1; padding: 20px 14px;
+  overflow-y: auto;
+}
+.t-drawer-brand {
+  display: flex; align-items: center; gap: 9px;
+  font-family: var(--font-display); font-size: 15px;
+  font-weight: 800; letter-spacing: 1.5px;
+  color: var(--accent); text-decoration: none;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.t-nav-section {
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text3); padding: 10px 10px 6px;
+}
+.t-nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--r-md);
+  font-size: 13px; font-weight: 500;
+  color: var(--text2); cursor: pointer;
+  text-decoration: none;
+  transition: background .18s, color .18s;
+  border: 1px solid transparent;
+}
+.t-nav-item:hover { background: var(--bg3); color: var(--text); }
+.t-nav-item.active {
+  background: var(--accent-dim); color: var(--accent);
+  border-color: var(--border2); font-weight: 600;
+}
+.t-drawer-bottom {
+  padding: 14px;
+  border-top: 1px solid var(--border);
+}
+.t-btn-logout {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; border-radius: var(--r-md);
+  background: none; border: 1px solid var(--border);
+  color: var(--text2); font-family: var(--font-display);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .18s;
+}
+.t-btn-logout:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
+.t-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.65);
+  z-index: 190; opacity: 0; pointer-events: none;
+  transition: opacity .28s;
+}
+.t-overlay.open { opacity: 1; pointer-events: auto; }
 </style>
 </head>
 <body>
@@ -338,15 +423,17 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
 <div class="trainer-root">
 
   <!-- Top bar -->
-  <div class="train-bar">
-    <a href="dashboard.html" class="train-brand">
-      <svg width="24" height="24" viewBox="0 0 34 34" fill="none">
-        <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
-        <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
-        <line x1="17" y1="22" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
-      </svg>
-      Shuttlestepz
-    </a>
+  <button class="t-hamburger" id="t-hb" onclick="tDrawer()">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="dashboard.html" class="train-brand">
+    <svg width="24" height="24" viewBox="0 0 34 34" fill="none">
+      <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
+      <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
+      <line x1="17" y1="22" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    Shuttlestepz
+  </a>
     <div class="train-stats">
       <div class="tstat"><div class="tstat-val" id="s-round">—</div><div class="tstat-lbl">ROUND</div></div>
       <div class="tstat accent"><div class="tstat-val" id="s-score">0</div><div class="tstat-lbl">SCORE</div></div>
@@ -542,6 +629,75 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
 
   </div>
 </div>
+<!-- ── TRAINER DRAWER SIDEBAR ── -->
+<div class="t-overlay" id="t-overlay" onclick="tDrawer()"></div>
+<nav class="t-drawer" id="t-drawer">
+  <div class="t-drawer-top">
+    <a href="dashboard.html" class="t-drawer-brand">
+      <svg width="22" height="22" viewBox="0 0 34 34" fill="none">
+        <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
+        <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
+        <line x1="17" y1="22" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      Shuttlestepz
+    </a>
+
+    <div class="t-nav-section">Main</div>
+    <a href="dashboard.html" class="t-nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Overview
+    </a>
+    <a href="trainer.html" class="t-nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Train
+    </a>
+    <a href="dashboard.html#history" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','history')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+      History
+    </a>
+    <a href="dashboard.html#leaderboard" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','leaderboard')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="18 20 18 10"/><polyline points="12 20 12 4"/><polyline points="6 20 6 14"/></svg>
+      Leaderboard
+    </a>
+
+    <div class="t-nav-section" style="margin-top:8px">Account</div>
+    <a href="dashboard.html#profile" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','profile')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </a>
+  </div>
+
+  <div class="t-drawer-bottom">
+    <button class="t-btn-logout" onclick="tLogout()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Log Out
+    </button>
+  </div>
+</nav>
+
+<script>
+function tDrawer() {
+  const dr = document.getElementById('t-drawer')
+  const ov = document.getElementById('t-overlay')
+  const hb = document.getElementById('t-hb')
+  const open = dr.classList.toggle('open')
+  ov.classList.toggle('open', open)
+  hb.classList.toggle('open', open)
+}
+async function tLogout() {
+  try {
+    const m = await import('./js/database.js')
+    await m.default.logoutUser()
+  } catch(e) {}
+  window.location.href = 'login.html'
+}
+// Auto-open tab on dashboard redirect
+document.querySelectorAll('.t-nav-item[onclick]').forEach(a => {
+  a.addEventListener('click', () => {
+    setTimeout(() => window.location.href = 'dashboard.html', 50)
+  })
+})
+</script>
 
 <!-- Auth guard via Firebase -->
 <script type="module">
