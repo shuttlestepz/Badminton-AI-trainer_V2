@@ -343,7 +343,15 @@ async function startCamera() {
 // ── Model ─────────────────────────────────────────────────────
 async function loadModel() {
   modelStatus.className = 'err'
-  modelStatus.textContent = 'Loading MoveNet…'
+  // Loading state
+   modelStatus.textContent = 'Loading AI Model… ⏳'
+   
+   // Success state  
+   modelStatus.textContent = 'AI Model Ready ✓'
+   
+   // Error state
+   modelStatus.textContent = '❌ AI Model failed — check connection'
+   
   try {
     detector = await poseDetection.createDetector(
       poseDetection.SupportedModels.MoveNet,
@@ -900,6 +908,6 @@ window.addEventListener('load', () => {
     poseDetection.createDetector(
       poseDetection.SupportedModels.MoveNet,
       { runtime:'tfjs', modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
-    ).then(d => { detector = d; console.log('✅ Model preloaded!') })
+    ).then(d => { detector = d; modelStatus.textContent = 'AI Model Ready ✓'; console.log('✅ Model preloaded!') })
   }, 2000) // wait 2s after page load
 })
