@@ -645,6 +645,44 @@ html, body {
 }
 .btn-danger:hover { background: rgba(224,92,92,.18); border-color: var(--danger); }
 
+/* ── Profile inputs ── */
+.profile-input {
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Sora', sans-serif;
+  font-size: 12.5px;
+  padding: 7px 12px;
+  min-width: 180px;
+  max-width: 240px;
+  transition: border-color var(--trans);
+  outline: none;
+}
+.profile-input:focus { border-color: rgba(57,224,122,.5); }
+.profile-input option { background: var(--bg-3); }
+
+.hand-btn {
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  color: var(--text-2);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px; font-weight: 600;
+  padding: 7px 14px; cursor: pointer;
+  transition: all var(--trans);
+}
+.hand-btn.selected {
+  background: var(--accent-dim);
+  border-color: rgba(57,224,122,.5);
+  color: var(--accent);
+}
+
+@media (max-width: 600px) {
+  .profile-input { min-width: 120px; max-width: 160px; font-size: 11.5px; }
+  .settings-row { flex-wrap: wrap; gap: 8px; }
+}
+
 /* ════════════════════════════════
    ANIMATIONS
 ════════════════════════════════ */
@@ -1462,71 +1500,138 @@ html, body {
   </section>
 
   <!-- ══ TAB: PROFILE ══ -->
-  <section class="tab-panel" id="tab-profile">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">Profile & Settings</h1>
-        <p class="page-sub">Manage your account.</p>
+<section class="tab-panel" id="tab-profile">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Profile</h1>
+      <p class="page-sub">Manage your account and badminton details.</p>
+    </div>
+    <button class="btn-upgrade" id="btn-save-profile" onclick="saveProfile()" style="padding:10px 24px;font-size:13px">
+      💾 Save Changes
+    </button>
+  </div>
+
+  <!-- Avatar + name card -->
+  <div class="profile-card" style="margin-bottom:20px">
+    <div style="position:relative">
+      <div class="profile-avatar" id="profile-avatar-display" style="width:80px;height:80px;font-size:28px;cursor:pointer" onclick="document.getElementById('avatar-upload').click()">A</div>
+      <div style="position:absolute;bottom:0;right:0;width:22px;height:22px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px" onclick="document.getElementById('avatar-upload').click()">📷</div>
+      <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
+    </div>
+    <div>
+      <div class="profile-name" id="profile-name-display">Loading...</div>
+      <div class="profile-email" id="profile-email-display"></div>
+      <div class="profile-role-pill" id="profile-role-display">Student</div>
+    </div>
+  </div>
+
+  <!-- Save feedback -->
+  <div id="profile-save-msg" style="display:none;padding:10px 16px;border-radius:10px;margin-bottom:16px;font-size:13px;font-weight:600"></div>
+
+  <!-- ── BASIC PROFILE ── -->
+  <div class="section-title">👤 Basic Profile</div>
+  <div class="settings-group" style="margin-bottom:20px">
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Full Name</div></div>
+      <input class="profile-input" id="pf-fullname" type="text" placeholder="Your full name">
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Username</div></div>
+      <input class="profile-input" id="pf-username" type="text" placeholder="@username">
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Email</div><div class="settings-row-val">Managed by Firebase Auth</div></div>
+      <input class="profile-input" id="pf-email" type="email" disabled style="opacity:.5;cursor:not-allowed">
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Phone Number</div></div>
+      <input class="profile-input" id="pf-phone" type="tel" placeholder="+91 XXXXX XXXXX">
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Date of Birth</div></div>
+      <input class="profile-input" id="pf-dob" type="date">
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Gender</div></div>
+      <select class="profile-input" id="pf-gender">
+        <option value="">Select</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+        <option value="other">Other</option>
+        <option value="prefer_not">Prefer not to say</option>
+      </select>
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Country / City</div></div>
+      <input class="profile-input" id="pf-location" type="text" placeholder="e.g. Hyderabad, India">
+    </div>
+    <div class="settings-row" style="align-items:flex-start;padding-top:16px">
+      <div class="settings-row-left"><div class="settings-row-title">Bio</div><div class="settings-row-val">Tell others about yourself</div></div>
+      <textarea class="profile-input" id="pf-bio" rows="3" placeholder="Short bio..." style="resize:vertical;min-height:70px"></textarea>
+    </div>
+  </div>
+
+  <!-- ── BADMINTON PROFILE ── -->
+  <div class="section-title">🏸 Badminton Profile</div>
+  <div class="settings-group" style="margin-bottom:20px">
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Dominant Hand</div></div>
+      <div style="display:flex;gap:8px">
+        <button class="hand-btn" id="hand-right" onclick="setHand('right')">Right ✋</button>
+        <button class="hand-btn" id="hand-left" onclick="setHand('left')">Left 🤚</button>
       </div>
     </div>
-
-    <div class="profile-card anim-up">
-      <div class="profile-avatar" id="profile-avatar">?</div>
-      <div class="profile-info">
-        <div class="profile-name"      id="profile-name">—</div>
-        <div class="profile-email"     id="profile-email">—</div>
-        <div class="profile-role-pill" id="profile-role-pill">Student</div>
-      </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Skill Level</div></div>
+      <select class="profile-input" id="pf-skill">
+        <option value="">Select</option>
+        <option value="beginner">Beginner</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+        <option value="competitive">Competitive</option>
+      </select>
     </div>
-
-    <div class="settings-group">
-      <div class="settings-label">Account</div>
-      <div class="settings-row">
-        <div class="settings-row-left">
-          <div class="settings-row-title">Username</div>
-          <div class="settings-row-val" id="settings-username">—</div>
-        </div>
-      </div>
-      <div class="settings-row">
-        <div class="settings-row-left">
-          <div class="settings-row-title">Email</div>
-          <div class="settings-row-val" id="settings-email">—</div>
-        </div>
-      </div>
-      <div class="settings-row">
-        <div class="settings-row-left">
-          <div class="settings-row-title">Plan</div>
-          <div class="settings-row-val" id="settings-plan">Free</div>
-        </div>
-        <button class="btn-upgrade" id="btn-upgrade" onclick="window.location.href='upgrade.html'">Upgrade ⭐</button>
-      </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Play Style</div></div>
+      <select class="profile-input" id="pf-playstyle">
+        <option value="">Select</option>
+        <option value="aggressive">Aggressive</option>
+        <option value="defensive">Defensive</option>
+        <option value="control">Control</option>
+        <option value="smash_heavy">Smash-heavy</option>
+      </select>
     </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Favourite Shot</div></div>
+      <input class="profile-input" id="pf-favshot" type="text" placeholder="e.g. Cross-court drop shot">
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Weakness Area</div></div>
+      <input class="profile-input" id="pf-weakness" type="text" placeholder="e.g. Back court left">
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Years of Experience</div></div>
+      <input class="profile-input" id="pf-years" type="number" min="0" max="50" placeholder="0">
+    </div>
+  </div>
 
-    <div class="settings-group">
-     <div class="settings-label">Danger Zone</div>
-     <div class="settings-row">
-       <div class="settings-row-left">
-         <div class="settings-row-title">Cancel Premium</div>
-         <div class="settings-row-val">Downgrade to Free plan</div>
-       </div>
-       <button class="btn-danger" id="btn-cancel-premium" onclick="cancelPremium()">Cancel Plan</button>
-     </div>
-     <div class="settings-row">
-       <div class="settings-row-left">
-         <div class="settings-row-title">Log out</div>
-         <div class="settings-row-val">Ends your current session</div>
-       </div>
-       <button class="btn-danger" onclick="doLogout()">Log Out</button>
-     </div>
-   </div>
-   <div class="settings-row">
-     <div class="settings-row-left">
-       <div class="settings-row-title">Delete Account</div>
-       <div class="settings-row-val">Permanently delete your account and all data</div>
-     </div>
-     <button class="btn-danger" onclick="deleteAccount()">Delete Account</button>
-   </div>
-  </section>
+  <!-- ── ACCOUNT ── -->
+  <div class="section-title">⚙️ Account</div>
+  <div class="settings-group" style="margin-bottom:20px">
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Plan</div><div class="settings-row-val" id="profile-plan">Free</div></div>
+      <button class="btn-upgrade" onclick="window.location.href='upgrade.html'">Upgrade</button>
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Reset Password</div><div class="settings-row-val">Send reset link to your email</div></div>
+      <button class="btn-danger" onclick="sendResetFromProfile()">Reset</button>
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-left"><div class="settings-row-title">Delete Account</div><div class="settings-row-val">This action is permanent</div></div>
+      <button class="btn-danger" id="btn-delete-account">Delete</button>
+    </div>
+  </div>
+</section>
 
 </main>
 
@@ -2678,6 +2783,113 @@ DB.onAuthReady(async (firebaseUser) => {
     console.error('[dash] boot error:', err.message)
   }
 })
+// ── PROFILE ──
+let currentHand = '';
+
+function setHand(h) {
+  currentHand = h;
+  document.getElementById('hand-right').classList.toggle('selected', h === 'right');
+  document.getElementById('hand-left').classList.toggle('selected', h === 'left');
+}
+
+async function loadProfile() {
+  try {
+    const profile = await DB.getUserProfile() || {};
+    const user = DB.getCurrentUser();
+    document.getElementById('pf-fullname').value   = profile.displayName || '';
+    document.getElementById('pf-username').value   = profile.username || '';
+    document.getElementById('pf-email').value      = user?.email || '';
+    document.getElementById('pf-phone').value      = profile.phone || '';
+    document.getElementById('pf-dob').value        = profile.dob || '';
+    document.getElementById('pf-gender').value     = profile.gender || '';
+    document.getElementById('pf-location').value   = profile.location || '';
+    document.getElementById('pf-bio').value        = profile.bio || '';
+    document.getElementById('pf-skill').value      = profile.skillLevel || '';
+    document.getElementById('pf-playstyle').value  = profile.playStyle || '';
+    document.getElementById('pf-favshot').value    = profile.favShot || '';
+    document.getElementById('pf-weakness').value   = profile.weakness || '';
+    document.getElementById('pf-years').value      = profile.yearsExp || '';
+    if (profile.dominantHand) setHand(profile.dominantHand);
+    if (profile.avatarURL) {
+      const av = document.getElementById('profile-avatar-display');
+      av.style.backgroundImage = `url(${profile.avatarURL})`;
+      av.style.backgroundSize = 'cover';
+      av.textContent = '';
+    }
+  } catch(e) { console.warn('loadProfile', e); }
+}
+
+async function saveProfile() {
+  const btn = document.getElementById('btn-save-profile');
+  const msg = document.getElementById('profile-save-msg');
+  btn.textContent = '⏳ Saving...'; btn.disabled = true;
+  try {
+    await DB.updateUserProfile({
+      displayName:   document.getElementById('pf-fullname').value.trim(),
+      username:      document.getElementById('pf-username').value.trim(),
+      phone:         document.getElementById('pf-phone').value.trim(),
+      dob:           document.getElementById('pf-dob').value,
+      gender:        document.getElementById('pf-gender').value,
+      location:      document.getElementById('pf-location').value.trim(),
+      bio:           document.getElementById('pf-bio').value.trim(),
+      skillLevel:    document.getElementById('pf-skill').value,
+      playStyle:     document.getElementById('pf-playstyle').value,
+      favShot:       document.getElementById('pf-favshot').value.trim(),
+      weakness:      document.getElementById('pf-weakness').value.trim(),
+      yearsExp:      parseInt(document.getElementById('pf-years').value) || 0,
+      dominantHand:  currentHand,
+    });
+    msg.style.display = 'block';
+    msg.style.background = 'rgba(57,224,122,.12)';
+    msg.style.border = '1px solid rgba(57,224,122,.3)';
+    msg.style.color = 'var(--accent)';
+    msg.textContent = '✅ Profile saved successfully!';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    // update topbar display name
+    document.getElementById('profile-name-display').textContent = document.getElementById('pf-fullname').value;
+  } catch(e) {
+    msg.style.display = 'block';
+    msg.style.background = 'rgba(224,92,92,.1)';
+    msg.style.border = '1px solid rgba(224,92,92,.3)';
+    msg.style.color = 'var(--danger)';
+    msg.textContent = '❌ Save failed. Try again.';
+  }
+  btn.textContent = '💾 Save Changes'; btn.disabled = false;
+}
+
+function handleAvatarUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    const url = ev.target.result;
+    const av = document.getElementById('profile-avatar-display');
+    av.style.backgroundImage = `url(${url})`;
+    av.style.backgroundSize = 'cover';
+    av.textContent = '';
+    // Save as base64 to Firebase (small avatars only)
+    await DB.updateUserProfile({ avatarURL: url });
+  };
+  reader.readAsDataURL(file);
+}
+
+async function sendResetFromProfile() {
+  const email = document.getElementById('pf-email').value;
+  if (!email) return;
+  try {
+    await DB.resetPassword(email);
+    alert('Reset link sent to ' + email);
+  } catch(e) {
+    alert(e.message || 'Failed to send reset link');
+  }
+}
+
+// Load profile when tab switches to profile
+const _origSwitchTab = window.switchTab;
+window.switchTab = function(tab) {
+  _origSwitchTab && _origSwitchTab(tab);
+  if (tab === 'profile') loadProfile();
+};
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
