@@ -2786,7 +2786,7 @@ DB.onAuthReady(async (firebaseUser) => {
 // ── PROFILE ──
 let currentHand = '';
 
-function setHand(h) {
+window.setHand = function(h) {
   currentHand = h;
   document.getElementById('hand-right').classList.toggle('selected', h === 'right');
   document.getElementById('hand-left').classList.toggle('selected', h === 'left');
@@ -2819,7 +2819,7 @@ async function loadProfile() {
   } catch(e) { console.warn('loadProfile', e); }
 }
 
-async function saveProfile() {
+window.saveProfile = async function() {
   const btn = document.getElementById('btn-save-profile');
   const msg = document.getElementById('profile-save-msg');
   btn.textContent = '⏳ Saving...'; btn.disabled = true;
@@ -2857,7 +2857,7 @@ async function saveProfile() {
   btn.textContent = '💾 Save Changes'; btn.disabled = false;
 }
 
-function handleAvatarUpload(e) {
+window.handleAvatarUpload = function(e) {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -2873,7 +2873,7 @@ function handleAvatarUpload(e) {
   reader.readAsDataURL(file);
 }
 
-async function sendResetFromProfile() {
+window.sendResetFromProfile = async function() {
   const email = document.getElementById('pf-email').value;
   if (!email) return;
   try {
