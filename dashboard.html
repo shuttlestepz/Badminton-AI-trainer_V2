@@ -677,6 +677,18 @@ html, body {
   .drill-grid { grid-template-columns: 1fr; }
   .xp-card-badges { gap: 16px; }
 }
+
+@media (max-width: 640px) {
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  .chart-container, [class*="chart"] {
+    overflow: hidden;
+    width: 100% !important;
+  }
+}
+   
 </style>
 </head>
 <body>
