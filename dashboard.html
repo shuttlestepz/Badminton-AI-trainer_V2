@@ -1502,6 +1502,13 @@ html, body {
        <button class="btn-danger" onclick="doLogout()">Log Out</button>
      </div>
    </div>
+   <div class="settings-row">
+     <div class="settings-row-left">
+       <div class="settings-row-title">Delete Account</div>
+       <div class="settings-row-val">Permanently delete your account and all data</div>
+     </div>
+     <button class="btn-danger" onclick="deleteAccount()">Delete Account</button>
+   </div>
   </section>
 
 </main>
@@ -2358,6 +2365,40 @@ const $  = id => document.getElementById(id)
 window.doLogout = async () => {
   try { await DB.logoutUser() } catch(e) {}
   window.location.href = 'login.html'
+}
+
+window.deleteAccount = async () => {
+  // Step 1 — confirm
+  const confirm1 = confirm('Are you sure you want to delete your account? This cannot be undone.')
+  if (!confirm1) return
+
+  // Step 2 — double confirm
+  const confirm2 = confirm('This will permanently delete ALL your data — sessions, XP, progress. Type OK to continue.')
+  if (!confirm2) return
+
+  try {
+    const user = DB.getCurrentUser?.() || (await new Promise(r => DB.onAuthReady(r)))
+    if (!user) return
+
+    // Delete Firestore user data
+    await DB.deleteUserData?.(user.uid)
+
+    // Delete Firebase Auth account
+    await user.delete()
+
+    // Clear cache and redirect
+    sessionStorage.clear()
+    localStorage.clear()
+    window.location.href = 'index.html'
+
+  } catch(err) {
+    if (err.code === 'auth/requires-recent-login') {
+      alert('For security, please log out and log back in before deleting your account.')
+    } else {
+      alert('Failed to delete account: ' + err.message)
+    }
+    console.error('[deleteAccount]', err)
+  }
 }
 
 window.cancelPremium = async () => {
