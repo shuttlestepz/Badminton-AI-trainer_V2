@@ -563,6 +563,64 @@
       .how-grid { grid-template-columns: 1fr; }
       .stats-band-inner { grid-template-columns: 1fr 1fr; }
     }
+    /* ════════════════════════
+       MOBILE NAV HAMBURGER
+       (desktop unaffected)
+    ════════════════════════ */
+    .nav-hamburger {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      width: 36px; height: 36px;
+      background: none;
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 8px;
+    }
+    .nav-hamburger span {
+      display: block;
+      height: 1.5px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: all var(--trans);
+    }
+    
+    .mobile-nav-drawer {
+      display: none;
+      position: fixed;
+      top: 60px; left: 0; right: 0;
+      background: rgba(10,13,15,.97);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      z-index: 99;
+      padding: 16px 20px 24px;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .mobile-nav-drawer.open { display: flex; }
+    .mobile-nav-drawer a {
+      color: var(--text-2);
+      text-decoration: none;
+      font-size: 15px; font-weight: 500;
+      padding: 12px 16px;
+      border-radius: 10px;
+      transition: background var(--trans), color var(--trans);
+    }
+    .mobile-nav-drawer a:hover,
+    .mobile-nav-drawer a:active { background: var(--bg-3); color: var(--text); }
+    .mobile-nav-drawer .nav-cta {
+      background: var(--accent); color: #0a0d0f;
+      font-weight: 700; text-align: center;
+      margin-top: 8px;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+    
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-hamburger { display: flex; }
+    }
   </style>
 </head>
 <body>
@@ -573,23 +631,38 @@
 
   <!-- ════ NAVBAR ════ -->
   <nav class="navbar">
-    <a href="index.html" class="nav-brand">
-      <svg width="28" height="28" viewBox="0 0 34 34" fill="none">
-        <circle cx="17" cy="17" r="15" stroke="#39e07a" stroke-width="1.5"/>
-        <circle cx="17" cy="7" r="3" fill="#39e07a"/>
-        <path d="M17 7 C11 12 9 17 11 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
-        <path d="M17 7 C23 12 25 17 23 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
-        <line x1="17" y1="23" x2="17" y2="31" stroke="#39e07a" stroke-width="2.5" stroke-linecap="round"/>
-      </svg>
-      Shuttlestepz
-    </a>
-    <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#how">How It Works</a>
-      <a href="login.html">Log In</a>
-      <a href="signup.html" class="nav-cta">Get Started →</a>
-    </div>
-  </nav>
+  <a href="index.html" class="nav-brand">
+    <svg width="28" height="28" viewBox="0 0 34 34" fill="none">
+      <circle cx="17" cy="17" r="15" stroke="#39e07a" stroke-width="1.5"/>
+      <circle cx="17" cy="7" r="3" fill="#39e07a"/>
+      <path d="M17 7 C11 12 9 17 11 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M17 7 C23 12 25 17 23 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="17" y1="23" x2="17" y2="31" stroke="#39e07a" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    Shuttlestepz
+  </a>
+
+  <!-- Desktop nav (hidden on mobile) -->
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how">How It Works</a>
+    <a href="login.html">Log In</a>
+    <a href="signup.html" class="nav-cta">Get Started →</a>
+  </div>
+
+  <!-- Hamburger (mobile only) -->
+  <button class="nav-hamburger" id="navHamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Mobile drawer -->
+<div class="mobile-nav-drawer" id="mobileDrawer">
+  <a href="#features" onclick="closeDrawer()">Features</a>
+  <a href="#how" onclick="closeDrawer()">How It Works</a>
+  <a href="login.html">Log In</a>
+  <a href="signup.html" class="nav-cta">Get Started →</a>
+</div>
 
   <!-- ════ HERO ════ -->
   <section>
@@ -824,7 +897,18 @@
     }
     setInterval(animatePlayer, 1800);
   </script>
+<script>
+  const hamburger = document.getElementById('navHamburger');
+  const drawer = document.getElementById('mobileDrawer');
+  hamburger.addEventListener('click', () => drawer.classList.toggle('open'));
+  function closeDrawer() { drawer.classList.remove('open'); }
+  // Close on outside tap
+  document.addEventListener('click', e => {
+    if (!hamburger.contains(e.target) && !drawer.contains(e.target))
+      drawer.classList.remove('open');
+  });
+</script>
 
-  <script type="module" src="/Badminton-AI-trainer_V2/js/auth.js"></script>
+<script type="module" src="/Badminton-AI-trainer_V2/js/auth.js"></script>
 </body>
 </html>
