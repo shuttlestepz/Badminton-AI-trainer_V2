@@ -453,6 +453,18 @@ async function _syncLeaderboard(uid, patch = {}) {
 
 window.addEventListener('beforeunload', _teardownAllListeners)
 
+async deleteUserData(uid) {
+  const { doc, deleteDoc, collection, getDocs } = await import('firebase/firestore')
+  
+  // Delete sessions subcollection
+  const sessionsRef = collection(this.db, 'users', uid, 'sessions')
+  const sessions = await getDocs(sessionsRef)
+  await Promise.all(sessions.docs.map(d => deleteDoc(d.ref)))
+  
+  // Delete user document
+  await deleteDoc(doc(this.db, 'users', uid))
+}
+
 /* ═══════════════════════════════════════════════════════════════
    12. DEFAULT EXPORT
 ═══════════════════════════════════════════════════════════════ */
