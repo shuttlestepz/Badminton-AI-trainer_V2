@@ -455,9 +455,12 @@ window.addEventListener('beforeunload', _teardownAllListeners);
 
 export async function deleteUserData(uid) {
   // Delete sessions subcollection
-  const sessionsRef = collection(db, 'users', uid, 'sessions')
+  const sessionsRef = collection(db, 'sessions', uid, 'records')
   const sessions = await getDocs(sessionsRef)
   await Promise.all(sessions.docs.map(d => deleteDoc(d.ref)))
+
+  // Delete leaderboard entry
+  await deleteDoc(doc(db, 'leaderboard', uid)).catch(() => {})
 
   // Delete user document
   await deleteDoc(doc(db, 'users', uid))
