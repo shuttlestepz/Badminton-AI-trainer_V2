@@ -453,9 +453,7 @@ async function _syncLeaderboard(uid, patch = {}) {
 
 window.addEventListener('beforeunload', _teardownAllListeners);
 
-async deleteUserData(uid) {
-  const { doc, deleteDoc, collection, getDocs } = await import('firebase/firestore')
-
+export async function deleteUserData(uid) {
   // Delete sessions subcollection
   const sessionsRef = collection(db, 'users', uid, 'sessions')
   const sessions = await getDocs(sessionsRef)
@@ -488,5 +486,5 @@ export default {
   listenLeaderboard, getUserRank,
   getSettings, saveSettings, listenSettings,
   getStudentsBySchoolCode, listenStudentsBySchoolCode,
-  unsubscribeAll, unsubscribe, resetUserData, saveAITips, getAITips,
+  unsubscribeAll, unsubscribe, resetUserData, saveAITips, getAITips,deleteUserData,
 }
