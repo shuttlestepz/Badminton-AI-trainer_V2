@@ -11,7 +11,7 @@ const PREMIUM = window.PREMIUM || null
 
 /* ── Creator emails — full access, no upgrade needed ────────── */
 const CREATOR_EMAILS = [
-  'techycoder1@gmail.com',
+  'aarohan0207.com@gmail.com',
   'aarohan0207@gmail.com',
 ]
 
@@ -37,7 +37,7 @@ function calcLevelInfo(xp) {
   return { level, title: LV_TITLES[level] || 'Legend', progress: Math.round(prog), xp, nextXP: nxt }
 }
 
-const FREE_LIMIT = 5
+const FREE_LIMIT = 20
 
 /* ── Firebase auth state → populate cache ────────────────────── */
 DB.onAuthReady(async (fbUser) => {
