@@ -451,16 +451,21 @@ function _teardownAllListeners() {
 async function _syncLeaderboard(uid, patch = {}) {
   const ref  = doc(db, 'leaderboard', uid)
   const snap = await getDoc(ref)
+
+  // Always pull latest avatarURL from user profile
+  const uSnap = await getDoc(doc(db, 'users', uid))
+  const uData = uSnap.exists() ? uSnap.data() : {}
+  const avatarURL = patch.avatarURL || uData.profile?.avatarURL || null
+
   if (snap.exists()) {
-    await updateDoc(ref, { ...patch, updatedAt: serverTimestamp() })
+    await updateDoc(ref, { ...patch, avatarURL, updatedAt: serverTimestamp() })
   } else {
-    const uSnap = await getDoc(doc(db, 'users', uid))
-    const p     = uSnap.exists() ? uSnap.data() : {}
     await setDoc(ref, {
-      displayName : patch.displayName || p.profile?.displayName || 'Player',
-      xp          : patch.xp         || p.xp    || 0,
-      level       : patch.level      || p.level || 1,
-      role        : patch.role       || p.profile?.role || 'student',
+      displayName : patch.displayName || uData.profile?.displayName || 'Player',
+      xp          : patch.xp         || uData.xp    || 0,
+      level       : patch.level      || uData.level || 1,
+      role        : patch.role       || uData.profile?.role || 'student',
+      avatarURL,
       updatedAt   : serverTimestamp(),
     })
   }
