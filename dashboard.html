@@ -2722,6 +2722,11 @@ DB.onAuthReady(async (firebaseUser) => {
   try {
     const prof = await DB.getUserProfile(firebaseUser.uid)
     const p    = prof.profile||{}
+    await DB.updateUserProfile({
+      displayName: p.displayName,
+      username:    p.username,
+      avatarURL:   p.avatarURL,
+    })
     const xp   = prof.xp||0, lv=prof.level||1
     const name = p.displayName||firebaseUser.displayName||'Athlete'
     const role = p.role||'student', plan=p.plan||'free'
