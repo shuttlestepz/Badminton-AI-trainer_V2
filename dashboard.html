@@ -2797,21 +2797,23 @@ window.setHand = function(h) {
 
 async function loadProfile() {
   try {
-    const profile = await DB.getUserProfile() || {};
     const user = DB.getCurrentUser();
-    document.getElementById('pf-fullname').value   = profile.displayName || '';
-    document.getElementById('pf-username').value   = profile.username || '';
-    document.getElementById('pf-email').value      = user?.email || '';
-    document.getElementById('pf-phone').value      = profile.phone || '';
-    document.getElementById('pf-dob').value        = profile.dob || '';
-    document.getElementById('pf-gender').value     = profile.gender || '';
-    document.getElementById('pf-location').value   = profile.location || '';
-    document.getElementById('pf-bio').value        = profile.bio || '';
-    document.getElementById('pf-skill').value      = profile.skillLevel || '';
-    document.getElementById('pf-playstyle').value  = profile.playStyle || '';
-    document.getElementById('pf-favshot').value    = profile.favShot || '';
-    document.getElementById('pf-weakness').value   = profile.weakness || '';
-    document.getElementById('pf-years').value      = profile.yearsExp || '';
+    const data = await DB.getUserProfile(user?.uid) || {};
+    const profile = data.profile || data; // handle both structures
+    
+    document.getElementById('pf-fullname').value  = profile.displayName || '';
+    document.getElementById('pf-username').value  = profile.username || '';
+    document.getElementById('pf-email').value     = user?.email || '';
+    document.getElementById('pf-phone').value     = profile.phone || '';
+    document.getElementById('pf-dob').value       = profile.dob || '';
+    document.getElementById('pf-gender').value    = profile.gender || '';
+    document.getElementById('pf-location').value  = profile.location || '';
+    document.getElementById('pf-bio').value       = profile.bio || '';
+    document.getElementById('pf-skill').value     = profile.skillLevel || '';
+    document.getElementById('pf-playstyle').value = profile.playStyle || '';
+    document.getElementById('pf-favshot').value   = profile.favShot || '';
+    document.getElementById('pf-weakness').value  = profile.weakness || '';
+    document.getElementById('pf-years').value     = profile.yearsExp || '';
     if (profile.dominantHand) setHand(profile.dominantHand);
     if (profile.avatarURL) {
       const av = document.getElementById('profile-avatar-display');
@@ -2821,7 +2823,7 @@ async function loadProfile() {
     }
   } catch(e) { console.warn('loadProfile', e); }
 }
-
+   
 window.saveProfile = async function() {
   const btn = document.getElementById('btn-save-profile');
   const msg = document.getElementById('profile-save-msg');
