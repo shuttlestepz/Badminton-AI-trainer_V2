@@ -154,10 +154,10 @@ export async function updateUserProfile(updates) {
 
   await updateDoc(doc(db, 'users', uid), safe)
 
-  if (updates.displayName) {
-    await updateProfile(auth.currentUser, { displayName: updates.displayName })
-    await _syncLeaderboard(uid, { displayName: updates.displayName })
-  }
+  if (updates.displayName || updates.username) {
+     if (updates.displayName) await updateProfile(auth.currentUser, { displayName: updates.displayName })
+     await _syncLeaderboard(uid, { displayName: updates.displayName, username: updates.username })
+   }
 }
 
 export function listenUserProfile(callback) {
@@ -451,6 +451,7 @@ function _teardownAllListeners() {
 async function _syncLeaderboard(uid, patch = {}) {
   const ref  = doc(db, 'leaderboard', uid)
   const snap = await getDoc(ref)
+  const username = patch.username || uData.profile?.username || null
 
   // Always pull latest avatarURL from user profile
   const uSnap = await getDoc(doc(db, 'users', uid))
@@ -458,16 +459,17 @@ async function _syncLeaderboard(uid, patch = {}) {
   const avatarURL = patch.avatarURL || uData.profile?.avatarURL || null
 
   if (snap.exists()) {
-    await updateDoc(ref, { ...patch, avatarURL, updatedAt: serverTimestamp() })
+      await updateDoc(ref, { ...patch, avatarURL, username, updatedAt: serverTimestamp() })
   } else {
     await setDoc(ref, {
-      displayName : patch.displayName || uData.profile?.displayName || 'Player',
-      xp          : patch.xp         || uData.xp    || 0,
-      level       : patch.level      || uData.level || 1,
-      role        : patch.role       || uData.profile?.role || 'student',
-      avatarURL,
-      updatedAt   : serverTimestamp(),
-    })
+     displayName : patch.displayName || uData.profile?.displayName || 'Player',
+     username    : username,
+     xp          : patch.xp         || uData.xp    || 0,
+     level       : patch.level      || uData.level || 1,
+     role        : patch.role       || uData.profile?.role || 'student',
+     avatarURL,
+     updatedAt   : serverTimestamp(),
+   })
   }
 }
 
