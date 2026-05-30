@@ -2477,6 +2477,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script type="module">
+
 import DB from './js/database.js'
 
 window.AUTH = DB
@@ -2797,31 +2798,48 @@ window.setHand = function(h) {
 
 async function loadProfile() {
   try {
-    const user = DB.getCurrentUser();
-    const data = await DB.getUserProfile(user?.uid) || {};
-    const profile = data.profile || data; // handle both structures
-    
-    document.getElementById('pf-fullname').value  = profile.displayName || '';
-    document.getElementById('pf-username').value  = profile.username || '';
-    document.getElementById('pf-email').value     = user?.email || '';
-    document.getElementById('pf-phone').value     = profile.phone || '';
-    document.getElementById('pf-dob').value       = profile.dob || '';
-    document.getElementById('pf-gender').value    = profile.gender || '';
-    document.getElementById('pf-location').value  = profile.location || '';
-    document.getElementById('pf-bio').value       = profile.bio || '';
-    document.getElementById('pf-skill').value     = profile.skillLevel || '';
-    document.getElementById('pf-playstyle').value = profile.playStyle || '';
-    document.getElementById('pf-favshot').value   = profile.favShot || '';
-    document.getElementById('pf-weakness').value  = profile.weakness || '';
-    document.getElementById('pf-years').value     = profile.yearsExp || '';
-    if (profile.dominantHand) setHand(profile.dominantHand);
-    if (profile.avatarURL) {
-      const av = document.getElementById('profile-avatar-display');
-      av.style.backgroundImage = `url(${profile.avatarURL})`;
-      av.style.backgroundSize = 'cover';
-      av.textContent = '';
+    const fbUser = await new Promise(r => DB.onAuthReady(r))
+    const prof   = await DB.getUserProfile(fbUser.uid)
+    const p      = prof.profile || {}
+
+    document.getElementById('pf-fullname').value  = p.displayName || ''
+    document.getElementById('pf-username').value  = p.username    || ''
+    document.getElementById('pf-email').value     = fbUser.email  || ''
+    document.getElementById('pf-phone').value     = p.phone       || ''
+    document.getElementById('pf-dob').value       = p.dob         || ''
+    document.getElementById('pf-gender').value    = p.gender      || ''
+    document.getElementById('pf-location').value  = p.location    || ''
+    document.getElementById('pf-bio').value       = p.bio         || ''
+    document.getElementById('pf-skill').value     = p.skillLevel  || ''
+    document.getElementById('pf-playstyle').value = p.playStyle   || ''
+    document.getElementById('pf-favshot').value   = p.favShot     || ''
+    document.getElementById('pf-weakness').value  = p.weakness    || ''
+    document.getElementById('pf-years').value     = p.yearsExp    || ''
+
+    if (p.dominantHand) setHand(p.dominantHand)
+
+    // ── Update profile card display ──
+    const name = p.displayName || fbUser.displayName || 'Athlete'
+    const av   = document.getElementById('profile-avatar-display')
+    const nd   = document.getElementById('profile-name-display')
+    const ed   = document.getElementById('profile-email-display')
+    const rd   = document.getElementById('profile-role-display')
+
+    if (nd) nd.textContent = name
+    if (ed) ed.textContent = fbUser.email || ''
+    if (rd) rd.textContent = (p.role||'student').charAt(0).toUpperCase()+(p.role||'student').slice(1)
+
+    if (p.avatarURL && av) {
+      av.style.backgroundImage = `url(${p.avatarURL})`
+      av.style.backgroundSize  = 'cover'
+      av.style.backgroundPosition = 'center'
+      av.textContent = ''
+    } else if (av) {
+      av.style.backgroundImage = ''
+      av.textContent = name.slice(0,2).toUpperCase()
     }
-  } catch(e) { console.warn('loadProfile', e); }
+
+  } catch(e) { console.warn('loadProfile', e) }
 }
    
 window.saveProfile = async function() {
@@ -2910,6 +2928,13 @@ window.switchTab = function(tab) {
   _origSwitchTab && _origSwitchTab(tab);
   if (tab === 'profile') loadProfile();
 };
+const savedTab = sessionStorage.getItem('ss_tab')
+if (savedTab) { sessionStorage.removeItem('ss_tab'); window.switchTab(savedTab) }
+
+window.setHand               = setHand
+window.saveProfile           = saveProfile
+window.handleAvatarUpload    = handleAvatarUpload
+window.sendResetFromProfile  = sendResetFromProfile
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
