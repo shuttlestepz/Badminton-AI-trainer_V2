@@ -2845,17 +2845,18 @@ window.saveProfile = async function() {
       dominantHand:  currentHand,
     });
     // Sync username + avatar to leaderboard
-   const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js')
+   const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js')
    const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js')
    const _db = getFirestore(); const _uid = getAuth().currentUser?.uid;
    if (_uid) {
      const avatarEl = document.getElementById('profile-avatar-display');
-     const avatarURL = avatarEl?.style.backgroundImage?.slice(5,-2) || '';
-     await updateDoc(doc(_db, 'leaderboard', _uid), {
+     const bgImg = avatarEl?.style.backgroundImage || '';
+     const avatarURL = bgImg.startsWith('url(') ? bgImg.slice(4, -1).replace(/['"]/g, '') : '';
+     await setDoc(doc(_db, 'leaderboard', _uid), {
        displayName: document.getElementById('pf-fullname').value.trim(),
        username:    document.getElementById('pf-username').value.trim(),
        avatarURL:   avatarURL,
-     }).catch(()=>{});
+     }, { merge: true }).catch(e => console.error('leaderboard sync:', e));
    }
     msg.style.display = 'block';
     msg.style.background = 'rgba(57,224,122,.12)';
