@@ -2681,10 +2681,8 @@ function renderLeaderboard(entries, myUID) {
   el.innerHTML = entries.map((e,i)=>`
     <div class="lb-item ${e.uid===myUID?'lb-item--me':''}">
       <div class="lb-pos ${posClass[i]||''}">${posEmoji[i]||i+1}</div>
-      ${e.avatarURL
-        ? `<div class="lb-avatar" style="background-image:url(${e.avatarURL});background-size:cover;background-position:center;font-size:0"></div>`
-        : `<div class="lb-avatar" style="${e.avatarURL?`background-image:url(${e.avatarURL});background-size:cover;background-position:center;`:''}">${e.avatarURL?'':(e.displayName||'?').slice(0,2).toUpperCase()}</div>`
-      }
+      ${e.avatarURL ? `<div class="lb-avatar" style="background-image:url(${e.avatarURL});background-size:cover;background-position:center;font-size:0"></div>` : `<div class="lb-avatar">${(e.displayName||'?').slice(0,2).toUpperCase()}</div>`}
+      
       <div class="lb-name-col">
         <div class="lb-lb-name">${e.username||e.displayName||'Player'}${e.uid===myUID?' (You)':''}</div>
         <div class="lb-lb-role">${e.username ? '@'+e.username : (e.role||'student').charAt(0).toUpperCase()+(e.role||'student').slice(1)}</div>
