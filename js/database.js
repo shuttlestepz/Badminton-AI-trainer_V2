@@ -135,10 +135,25 @@ export async function updateUserProfile(updates) {
   const uid  = _requireUID()
   const safe = {}
   if (updates.displayName) safe['profile.displayName'] = updates.displayName
+  if (updates.username)    safe['profile.username']    = updates.username
   if (updates.role)        safe['profile.role']        = updates.role
   if (updates.schoolCode)  safe['profile.schoolCode']  = updates.schoolCode.toUpperCase()
   if (updates.plan)        safe['profile.plan']        = updates.plan
+  if (updates.avatarURL)   safe['profile.avatarURL']   = updates.avatarURL
+  if (updates.phone)       safe['profile.phone']       = updates.phone
+  if (updates.dob)         safe['profile.dob']         = updates.dob
+  if (updates.gender)      safe['profile.gender']      = updates.gender
+  if (updates.location)    safe['profile.location']    = updates.location
+  if (updates.bio)         safe['profile.bio']         = updates.bio
+  if (updates.skillLevel)  safe['profile.skillLevel']  = updates.skillLevel
+  if (updates.playStyle)   safe['profile.playStyle']   = updates.playStyle
+  if (updates.favShot)     safe['profile.favShot']     = updates.favShot
+  if (updates.weakness)    safe['profile.weakness']    = updates.weakness
+  if (updates.yearsExp !== undefined) safe['profile.yearsExp'] = updates.yearsExp
+  if (updates.dominantHand) safe['profile.dominantHand'] = updates.dominantHand
+
   await updateDoc(doc(db, 'users', uid), safe)
+
   if (updates.displayName) {
     await updateProfile(auth.currentUser, { displayName: updates.displayName })
     await _syncLeaderboard(uid, { displayName: updates.displayName })
