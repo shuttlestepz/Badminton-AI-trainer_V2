@@ -2830,14 +2830,24 @@ async function loadProfile() {
     if (rd) rd.textContent = (p.role||'student').charAt(0).toUpperCase()+(p.role||'student').slice(1)
 
     if (p.avatarURL && av) {
-      av.style.backgroundImage = `url(${p.avatarURL})`
-      av.style.backgroundSize  = 'cover'
-      av.style.backgroundPosition = 'center'
-      av.textContent = ''
-    } else if (av) {
-      av.style.backgroundImage = ''
-      av.textContent = name.slice(0,2).toUpperCase()
-    }
+  // Test if URL loads before applying
+        const img = new Image()
+        img.onload = () => {
+          av.style.backgroundImage = `url(${p.avatarURL})`
+          av.style.backgroundSize = 'cover'
+          av.style.backgroundPosition = 'center'
+          av.textContent = ''
+        }
+        img.onerror = () => {
+          // URL broken — fall back to initials
+          av.style.backgroundImage = ''
+          av.textContent = name.slice(0, 2).toUpperCase()
+        }
+        img.src = p.avatarURL
+      } else if (av) {
+        av.style.backgroundImage = ''
+        av.textContent = name.slice(0, 2).toUpperCase()
+      }
 
   } catch(e) { console.warn('loadProfile', e) }
 }
@@ -2895,22 +2905,29 @@ window.saveProfile = async function() {
   btn.textContent = '💾 Save Changes'; btn.disabled = false;
 }
 
-window.handleAvatarUpload = function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async (ev) => {
-    const url = ev.target.result;
-    const av = document.getElementById('profile-avatar-display');
-    av.style.backgroundImage = `url(${url})`;
-    av.style.backgroundSize = 'cover';
-    av.textContent = '';
-    // Save as base64 to Firebase (small avatars only)
-    await DB.updateUserProfile({ avatarURL: url });
-  };
-  reader.readAsDataURL(file);
-}
+function handleAvatarUpload(e) {
+  const file = e.target.files[0]
+  if (!file) return
 
+  // Reject files over 200KB
+  if (file.size > 200 * 1024) {
+    alert('Image too large. Please use an image under 200KB.')
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = async (ev) => {
+    const url = ev.target.result
+    const av  = document.getElementById('profile-avatar-display')
+    av.style.backgroundImage = `url(${url})`
+    av.style.backgroundSize  = 'cover'
+    av.style.backgroundPosition = 'center'
+    av.textContent = ''
+    await DB.updateUserProfile({ avatarURL: url })
+  }
+  reader.readAsDataURL(file)
+}
+   
 window.sendResetFromProfile = async function() {
   const email = document.getElementById('pf-email').value;
   if (!email) return;
