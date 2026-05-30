@@ -333,6 +333,8 @@ export function listenLeaderboard(callback, topN = 50) {
       uid         : d.id,
       rank        : i + 1,
       displayName : d.data().displayName,
+      username    : d.data().username    || null,
+      avatarURL   : d.data().avatarURL   || null,
       xp          : d.data().xp,
       level       : d.data().level,
       role        : d.data().role,
