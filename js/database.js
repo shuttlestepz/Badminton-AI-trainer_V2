@@ -89,7 +89,15 @@ export async function logoutUser() {
 }
 
 export async function resetPassword(email) {
-  await sendPasswordResetEmail(auth, email)
+  try {
+    console.log('Attempting reset for:', email)
+    await sendPasswordResetEmail(auth, email)
+    console.log('Reset email sent successfully!')
+  } catch(e) {
+    console.error('Reset error code:', e.code)
+    console.error('Reset error message:', e.message)
+    throw e
+  }
 }
 
 export function onAuthReady(callback) {
