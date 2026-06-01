@@ -451,15 +451,13 @@ function _teardownAllListeners() {
   Object.keys(_unsubscribers).forEach(_teardown)
 }
 async function _syncLeaderboard(uid, patch = {}) {
-  const ref  = doc(db, 'leaderboard', uid)
-  const snap = await getDoc(ref)
-  const username = patch.username || uData.profile?.username || null
-
-  // Always pull latest avatarURL from user profile
+  const ref   = doc(db, 'leaderboard', uid)
+  const snap  = await getDoc(ref)
   const uSnap = await getDoc(doc(db, 'users', uid))
   const uData = uSnap.exists() ? uSnap.data() : {}
+  const username  = patch.username  || uData.profile?.username  || null
   const avatarURL = patch.avatarURL || uData.profile?.avatarURL || null
-
+   
   if (snap.exists()) {
       await updateDoc(ref, { ...patch, avatarURL, username, updatedAt: serverTimestamp() })
   } else {
