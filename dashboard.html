@@ -2545,6 +2545,9 @@ window.cancelPremium = async () => {
   }
 }
 
+const deleteBtn = document.getElementById('btn-delete-account')
+if (deleteBtn) deleteBtn.addEventListener('click', window.deleteAccount)
+
 const XP_THRESHOLDS = [0,500,1200,2200,3500,5200,7200,9800,13000,17000,22000]
 
 function renderXPData(xp, level) {
