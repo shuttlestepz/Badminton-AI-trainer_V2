@@ -511,6 +511,112 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
   .btn-stop-top { padding: 5px 8px; font-size: 9px; }
 }
 
+.guest-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.85);
+  backdrop-filter: blur(12px);
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.guest-overlay.show { display: flex; }
+
+.guest-modal {
+  background: #0e1610;
+  border: 1px solid rgba(56,210,90,.25);
+  border-radius: 22px;
+  padding: 36px 28px;
+  max-width: 380px; width: 100%;
+  text-align: center;
+  animation: guestPop .35s cubic-bezier(.34,1.56,.64,1);
+  position: relative;
+  overflow: hidden;
+}
+.guest-modal::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, #38d25a, transparent);
+}
+@keyframes guestPop {
+  from { opacity: 0; transform: scale(.85) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.guest-icon { font-size: 52px; margin-bottom: 12px; }
+.guest-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 800;
+  color: #e2ede4; margin-bottom: 8px; letter-spacing: -.5px;
+}
+.guest-sub {
+  font-size: 13.5px; color: #6e9475;
+  line-height: 1.65; margin-bottom: 6px;
+}
+.guest-sessions-used {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(56,210,90,.08);
+  border: 1px solid rgba(56,210,90,.2);
+  border-radius: 20px; padding: 6px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: #38d25a;
+  margin: 14px 0 20px;
+}
+.guest-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #38d25a;
+  animation: guestPulse 1.4s ease-in-out infinite;
+}
+@keyframes guestPulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .4; transform: scale(.7); }
+}
+
+.guest-perks {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 22px; text-align: left;
+}
+.guest-perk {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 9px; padding: 9px 13px;
+  font-size: 12.5px; color: #6e9475;
+}
+.guest-perk-icon { font-size: 16px; flex-shrink: 0; }
+
+.btn-guest-signup {
+  width: 100%; padding: 14px;
+  background: #38d25a; color: #050908;
+  border: none; border-radius: 11px;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px; font-weight: 800;
+  cursor: pointer; letter-spacing: .5px;
+  box-shadow: 0 0 28px rgba(56,210,90,.35);
+  transition: all .15s; margin-bottom: 10px;
+}
+.btn-guest-signup:hover {
+  background: #4ae870;
+  box-shadow: 0 0 42px rgba(56,210,90,.5);
+  transform: translateY(-1px);
+}
+.btn-guest-login {
+  width: 100%; padding: 11px;
+  background: transparent; color: #6e9475;
+  border: 1px solid rgba(56,210,90,.2);
+  border-radius: 11px;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.btn-guest-login:hover {
+  color: #38d25a;
+  border-color: rgba(56,210,90,.45);
+  background: rgba(56,210,90,.06);
+}
+.guest-note {
+  font-size: 10.5px; color: #364e3a;
+  margin-top: 14px; line-height: 1.6;
+} 
+  
 </style>
 </head>
 <body>
@@ -807,5 +913,49 @@ document.querySelectorAll('.t-nav-item[onclick]').forEach(a => {
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
 <script src="js/trainer.js"></script>
+
+<!-- ── Guest Session Limit Popup ── -->
+<div class="guest-overlay" id="guest-overlay">
+  <div class="guest-modal">
+    <div class="guest-icon">🏸</div>
+    <div class="guest-title">Free Trial Complete!</div>
+    <div class="guest-sub">
+      You've used your <strong style="color:#e2ede4">2 free sessions</strong>.<br>
+      Create a free account to keep training!
+    </div>
+    <div class="guest-sessions-used">
+      <div class="guest-dot"></div>
+      2 / 2 Free Sessions Used
+    </div>
+    <div class="guest-perks">
+      <div class="guest-perk">
+        <span class="guest-perk-icon">♾️</span>
+        Unlimited training sessions
+      </div>
+      <div class="guest-perk">
+        <span class="guest-perk-icon">🤖</span>
+        AI coach feedback after every session
+      </div>
+      <div class="guest-perk">
+        <span class="guest-perk-icon">📊</span>
+        Full session history & analytics
+      </div>
+      <div class="guest-perk">
+        <span class="guest-perk-icon">🏆</span>
+        XP system & global leaderboard
+      </div>
+    </div>
+    <button class="btn-guest-signup" onclick="window.location.href='signup.html'">
+      Create Free Account →
+    </button>
+    <button class="btn-guest-login" onclick="window.location.href='login.html'">
+      Already have an account? Log In
+    </button>
+    <div class="guest-note">
+      🔒 Free forever · No credit card needed<br>
+      Your progress is saved when you sign up
+    </div>
+  </div>
+</div>
 </body>
 </html>
