@@ -663,8 +663,18 @@ function endSession() {
   poseRunning=false
   if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null }
 
+  const acc = session.totalRounds > 0 
+    ? Math.round(session.hits/session.totalRounds*100) : 0
+
+  // ✅ Skip saving zero sessions
+  if (session.score === 0 && acc === 0) {
+    console.log('⚠️ Zero session — not saving')
+    showResults()
+    return
+  }
+
+  // ✅ Only save real sessions
   try {
-    const acc = session.totalRounds > 0 ? Math.round(session.hits/session.totalRounds*100) : 0
     const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
     import('./database.js').then(m => {
       const DB = m.default
