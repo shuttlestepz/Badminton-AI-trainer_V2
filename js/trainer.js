@@ -1,3 +1,9 @@
+function safeLocalStorage(action, key, value) {
+  try {
+    if (action === 'get') return localStorage.getItem(key)
+    if (action === 'set') localStorage.setItem(key, value)
+  } catch(e) { return null }
+}
 /* ============================================================
    Shuttlestepz — trainer.js
    AI Footwork Trainer Logic (auth-aware)
@@ -672,12 +678,14 @@ function endSession() {
     showResults()
     return
   }
-
+   
   // ✅ Only save real sessions
   try {
     const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
     import('./database.js').then(m => {
       const DB = m.default
+      const user = DB.getCurrentUser()
+      if (!user) return // ← skip save for guests
       DB.saveSession({
         mode: 'footwork', drill: 'footwork',
         score: session.score, hits: session.hits,
@@ -695,8 +703,8 @@ function endSession() {
   import('./database.js').then(m => {
     const user = m.default.getCurrentUser()
     if (!user) {
-      const count = parseInt(localStorage.getItem('guest_sessions') || '0') + 1
-      localStorage.setItem('guest_sessions', count)
+      const count = parseInt(safeLocalStorage('get', 'guest_sessions') || '0') + 1
+      safeLocalStorage('set', 'guest_sessions', count)
       if (count >= 2) {
         setTimeout(() => {
           document.getElementById('guest-overlay').style.display = 'flex'
@@ -891,17 +899,15 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
 
 // ── Buttons ───────────────────────────────────────────────────
 document.getElementById('btn-start-session').addEventListener('click', async () => {
-  // Guest session check
-  import('./database.js').then(async m => {
-    const user = m.default.getCurrentUser()
-    if (!user) {
-      const guestSessions = parseInt(localStorage.getItem('guest_sessions') || '0')
-      if (guestSessions >= 2) {
-        document.getElementById('guest-overlay').style.display = 'flex'
-        return
-      }
+  const m = await import('./database.js')
+  const user = m.default.getCurrentUser()
+  if (!user) {
+    const guestSessions = parseInt(safeLocalStorage('get', 'guest_sessions') || '0')
+    if (guestSessions >= 2) {
+      document.getElementById('guest-overlay').style.display = 'flex'
+      return
     }
-  })
+  }
 
   setupScreen.classList.remove('active')
   try { getAudio() } catch(e){}
@@ -913,7 +919,7 @@ document.getElementById('btn-start-session').addEventListener('click', async () 
     setTimeout(beginSession, 500)
   } catch(err) {
     modelStatus.textContent = 'Error: ' + (err.message || err)
-    modelStatus.className   = 'err'
+    modelStatus.className = 'err'
     setupScreen.classList.add('active')
   }
 })
