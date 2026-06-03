@@ -639,7 +639,7 @@ function scoreRound(hit, responseMs=null) {
 
 // ── Session ───────────────────────────────────────────────────
 function beginSession() {
-   import('./auth.js').then(m => m.default.incrementSession())
+   import('./database.js').then(m => m.default.getCurrentUser())
   resetPauseState()
   session.totalRounds=parseInt(slRounds.value); session.timePerDir=parseInt(slTime.value)
   session.voiceOn=chkVoice.checked; session.beepOn=chkBeep.checked
@@ -690,6 +690,19 @@ function endSession() {
       DB.awardXP(xpEarned)
     })
   } catch(e){ console.warn('session save failed:', e) }
+// Guest session tracking
+  import('./database.js').then(m => {
+    const user = m.default.getCurrentUser()
+    if (!user) {
+      const count = parseInt(localStorage.getItem('guest_sessions') || '0') + 1
+      localStorage.setItem('guest_sessions', count)
+      if (count >= 2) {
+        setTimeout(() => {
+          document.getElementById('guest-overlay').style.display = 'flex'
+        }, 3000) // show after results screen is visible
+      }
+    }
+  })
 
   showResults()
 }
