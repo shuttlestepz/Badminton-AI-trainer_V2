@@ -958,11 +958,42 @@ document.querySelectorAll('.t-nav-item[onclick]').forEach(a => {
     <button class="btn-guest-login" onclick="window.location.href='login.html'">
       Already have an account? Log In
     </button>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn-guest-login" style="flex:1" onclick="trainAgainGuest()">
+        🔁 Train Again
+      </button>
+      <button class="btn-guest-login" style="flex:1" onclick="window.location.href='index.html'">
+        🏠 Home
+      </button>
+    </div>
+    <div style="font-size:11px;color:#364e3a;margin-top:8px">
+      <span id="guest-sessions-left"></span>
+    </div>
     <div class="guest-note">
       🔒 Free forever · No credit card needed<br>
       Your progress is saved when you sign up
     </div>
   </div>
 </div>
+<script>
+function trainAgainGuest() {
+  const count = parseInt(localStorage.getItem('guest_sessions') || '0')
+  const left = Math.max(0, 2 - count)
+  if (left <= 0) {
+    document.getElementById('guest-sessions-left').textContent = 'No free sessions left — sign up to keep training!'
+    return
+  }
+  document.getElementById('guest-overlay').style.display = 'none'
+  document.getElementById('screen-setup').classList.add('active')
+}
+
+// Update sessions left count when overlay shows
+function updateGuestCount() {
+  const count = parseInt(localStorage.getItem('guest_sessions') || '0')
+  const left = Math.max(0, 2 - count)
+  const el = document.getElementById('guest-sessions-left')
+  if (el) el.textContent = left > 0 ? `${left} free session${left===1?'':'s'} remaining` : 'No free sessions left'
+}
+</script>
 </body>
 </html>
