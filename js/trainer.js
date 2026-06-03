@@ -890,14 +890,32 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
 
 // ── Buttons ───────────────────────────────────────────────────
 document.getElementById('btn-start-session').addEventListener('click', async () => {
-  // ── Session limit check ──
-  const { default: AUTH } = await import('./auth.js')
+  // Guest session check
+  import('./database.js').then(async m => {
+    const user = m.default.getCurrentUser()
+    if (!user) {
+      const guestSessions = parseInt(localStorage.getItem('guest_sessions') || '0')
+      if (guestSessions >= 2) {
+        document.getElementById('guest-overlay').style.display = 'flex'
+        return
+      }
+    }
+  })
 
-  if (!AUTH.canStartSession()) {
-    document.getElementById('lock-overlay').classList.remove('hidden')
-    setupScreen.classList.remove('active')
-    return
+  setupScreen.classList.remove('active')
+  try { getAudio() } catch(e){}
+  try {
+    await startCamera()
+    await loadModel()
+    poseRunning = true
+    detectPose()
+    setTimeout(beginSession, 500)
+  } catch(err) {
+    modelStatus.textContent = 'Error: ' + (err.message || err)
+    modelStatus.className   = 'err'
+    setupScreen.classList.add('active')
   }
+})
 
   // ── Low sessions warning ──
   const rem = AUTH.sessionsRemaining()
