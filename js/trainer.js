@@ -917,32 +917,6 @@ document.getElementById('btn-start-session').addEventListener('click', async () 
   }
 })
 
-  // ── Low sessions warning ──
-  const rem = AUTH.sessionsRemaining()
-  if (rem <= 2) {
-    const warn     = document.getElementById('limit-warn')
-    const warnText = document.getElementById('limit-warn-text')
-    if (warn && warnText) {
-      warnText.textContent = `${rem} free session${rem === 1 ? '' : 's'} remaining today`
-      warn.style.display = 'flex'
-    }
-  }
-
-  setupScreen.classList.remove('active')
-  try { getAudio() } catch(e){}
-  try {
-    await startCamera()
-    await loadModel()
-    poseRunning = true
-    detectPose()
-    setTimeout(beginSession, 500)
-  } catch(err) {
-    modelStatus.textContent = 'Error: ' + (err.message || err)
-    modelStatus.className   = 'err'
-    setupScreen.classList.add('active')
-  }
-})
-
 // ✅ btn-stop now just calls endSession() — no duplicate save! 🎯
 document.getElementById('btn-stop').addEventListener('click', () => {
   stopSafeTimer()
