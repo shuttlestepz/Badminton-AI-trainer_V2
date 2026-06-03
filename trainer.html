@@ -906,14 +906,12 @@ document.querySelectorAll('.t-nav-item[onclick]').forEach(a => {
   import DB from './js/database.js'
   DB.onAuthReady(user => {
     if (!user) {
-      // Guest mode — check session count
       const guestSessions = parseInt(localStorage.getItem('guest_sessions') || '0')
       if (guestSessions >= 2) {
         document.getElementById('guest-overlay').style.display = 'flex'
       }
       // else allow guest to train
     } else {
-      // Logged in — hide guest overlay
       document.getElementById('guest-overlay').style.display = 'none'
     }
   })
