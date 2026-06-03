@@ -690,7 +690,8 @@ function endSession() {
       DB.awardXP(xpEarned)
     })
   } catch(e){ console.warn('session save failed:', e) }
-// Guest session tracking
+
+  // Guest session tracking
   import('./database.js').then(m => {
     const user = m.default.getCurrentUser()
     if (!user) {
@@ -699,14 +700,14 @@ function endSession() {
       if (count >= 2) {
         setTimeout(() => {
           document.getElementById('guest-overlay').style.display = 'flex'
-        }, 3000) // show after results screen is visible
+          if (typeof updateGuestCount === 'function') updateGuestCount()
+        }, 3000)
       }
     }
   })
 
   showResults()
 }
-
 // ── Results ───────────────────────────────────────────────────
 function showResults() {
   resultScreen.classList.add('active')
