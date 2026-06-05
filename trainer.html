@@ -893,10 +893,14 @@ async function tLogout() {
   } catch(e) {}
   window.location.href = 'login.html'
 }
+
 // Auto-open tab on dashboard redirect
 document.querySelectorAll('.t-nav-item[onclick]').forEach(a => {
   a.addEventListener('click', () => {
-    setTimeout(() => window.location.href = 'dashboard.html', 50)
+    const onclickAttr = a.getAttribute('onclick')
+    if (onclickAttr && onclickAttr.includes('ss_tab')) {
+      setTimeout(() => window.location.href = 'dashboard.html', 50)
+    }
   })
 })
 </script>
