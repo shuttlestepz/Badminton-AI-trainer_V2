@@ -853,17 +853,17 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
       Train
     </a>
-    <a href="dashboard.html#history" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','history')">
+    <a href="javascript:void(0)" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','history');window.location.href='dashboard.html'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
       History
     </a>
-    <a href="dashboard.html#leaderboard" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','leaderboard')">
+    <a href="javascript:void(0)" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','leaderboard');window.location.href='dashboard.html'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="18 20 18 10"/><polyline points="12 20 12 4"/><polyline points="6 20 6 14"/></svg>
       Leaderboard
     </a>
 
     <div class="t-nav-section" style="margin-top:8px">Account</div>
-    <a href="dashboard.html#profile" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','profile')">
+    <a href="javascript:void(0)" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','profile');window.location.href='dashboard.html'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Profile
     </a>
@@ -894,15 +894,6 @@ async function tLogout() {
   window.location.href = 'login.html'
 }
 
-// Auto-open tab on dashboard redirect
-document.querySelectorAll('.t-nav-item[onclick]').forEach(a => {
-  a.addEventListener('click', () => {
-    const onclickAttr = a.getAttribute('onclick')
-    if (onclickAttr && onclickAttr.includes('ss_tab')) {
-      setTimeout(() => window.location.href = 'dashboard.html', 50)
-    }
-  })
-})
 </script>
 
 <!-- Auth guard via Firebase -->
