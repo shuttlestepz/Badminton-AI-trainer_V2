@@ -1024,10 +1024,18 @@ function updateGuestCount() {
 function checkOrientation() {
   const warning = document.getElementById('portrait-warning')
   if (!warning) return
-  const isMobile = window.innerWidth <= 768 || /Android|iPhone|iPad/i.test(navigator.userAgent)
+
+  const isMobile = window.innerWidth <= 900 || /Android|iPhone|iPad/i.test(navigator.userAgent)
   const isPortrait = window.innerHeight > window.innerWidth
 
-  if (isMobile && isPortrait) {
+  // Only show warning during active training, not on setup or results
+  const setupActive = document.getElementById('screen-setup')?.classList.contains('active')
+  const resultsActive = document.getElementById('screen-results')?.classList.contains('active')
+  const lockActive = !document.getElementById('lock-overlay')?.classList.contains('hidden')
+
+  const onSetupOrResults = setupActive || resultsActive || lockActive
+
+  if (isMobile && isPortrait && !onSetupOrResults) {
     warning.style.display = 'flex'
     document.body.style.overflow = 'hidden'
   } else {
