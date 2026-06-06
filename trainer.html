@@ -239,7 +239,7 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
 ═══════════════════════════════════════════════ */
 
 /* ── Hide sidebar on ALL mobile ── */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .sidebar { display: none !important; }
   .trainer-body { flex-direction: column; }
 
@@ -279,8 +279,11 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
   .tstat {
     padding: 2px 5px;
     min-width: 38px;
+    max-width: 60px;
     border-radius: 6px;
+    flex-shrink: 1;
   }
+
   .tstat-val { font-size: 13px; line-height: 1.2; }
   .tstat-lbl { font-size: 6px; letter-spacing: .8px; margin-top: 1px; }
 
@@ -300,7 +303,7 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
 }
 
 /* ── Landscape mobile — training mode ── */
-@media (max-width: 900px) and (orientation: landscape) {
+@media (max-width: 1024px) and (orientation: landscape) {
   html, body { overflow: hidden; height: 100%; }
 
   .trainer-root {
