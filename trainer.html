@@ -233,16 +233,162 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
 .display-md{font-family:var(--font-display);font-size:28px;font-weight:700;line-height:1.1}
 
 /* ── RESPONSIVE ── */
-@media(max-width:768px){
-  .sidebar{width:100%;border-left:none;border-top:1px solid var(--border)}
-  .trainer-body{flex-direction:column}
-  .camera-area{flex:1;min-height:250px}
-  #dir-text{font-size:20px}
+/* ═══════════════════════════════════════════════
+   MOBILE LANDSCAPE TRAINER — paste inside <style>
+   Replace existing @media (max-width:768px) blocks
+═══════════════════════════════════════════════ */
+
+/* ── Hide sidebar on ALL mobile ── */
+@media (max-width: 768px) {
+  .sidebar { display: none !important; }
+  .trainer-body { flex-direction: column; }
+
+  /* Camera fills everything */
+  .camera-area {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Topbar — slim and horizontal, never wraps */
+  .train-bar {
+    padding: 5px 10px;
+    gap: 6px;
+    height: 44px;
+    flex-wrap: nowrap;
+  }
+
+  /* Hide brand text, keep icon */
+  .train-brand {
+    font-size: 0 !important;
+    gap: 0 !important;
+  }
+  .train-brand img {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  /* Stats — compact, never wrap */
+  .train-stats {
+    flex: 1;
+    gap: 3px;
+    justify-content: center;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .tstat {
+    padding: 2px 5px;
+    min-width: 38px;
+    border-radius: 6px;
+  }
+  .tstat-val { font-size: 13px; line-height: 1.2; }
+  .tstat-lbl { font-size: 6px; letter-spacing: .8px; margin-top: 1px; }
+
+  /* Model status — hide */
+  #model-status { display: none !important; }
+
+  /* Stop button */
+  .btn-stop-top {
+    padding: 5px 9px;
+    font-size: 9px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* Hamburger */
+  .t-hamburger { width: 30px; height: 30px; flex-shrink: 0; }
 }
-@media(max-width:480px){
-  .train-stats{gap:4px}
-  .tstat{padding:5px 8px;min-width:50px}
-  .tstat-val{font-size:18px}
+
+/* ── Landscape mobile — training mode ── */
+@media (max-width: 900px) and (orientation: landscape) {
+  html, body { overflow: hidden; height: 100%; }
+
+  .trainer-root {
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* Ultra-slim topbar in landscape */
+  .train-bar {
+    height: 38px;
+    padding: 4px 10px;
+    flex-shrink: 0;
+  }
+
+  .trainer-body {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Camera = all remaining space */
+  .camera-area {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  #video, #overlay {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Sidebar hidden in landscape too */
+  .sidebar { display: none !important; }
+
+  /* Overlays fill full screen */
+  #screen-setup, #screen-results, .lock-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+  }
+}
+
+/* ── Results — portrait mode ── */
+@media (max-width: 768px) and (orientation: portrait) {
+  #screen-results {
+    overflow-y: auto;
+    align-items: flex-start;
+    padding: 16px;
+  }
+  .results-box {
+    width: 100%;
+    max-width: 100%;
+    padding-bottom: 80px;
+  }
+  .r-score { font-size: 56px; }
+  .r-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .r-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+    padding: 12px 0 4px;
+    border-top: 1px solid var(--border);
+    flex-direction: column;
+    gap: 8px;
+  }
+  .r-actions .btn-primary,
+  .r-actions .btn-secondary {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ── Setup screen — portrait scrollable ── */
+@media (max-width: 768px) and (orientation: portrait) {
+  #screen-setup {
+    overflow-y: auto;
+    align-items: flex-start;
+    padding: 20px 16px;
+  }
+  .setup-box {
+    width: 100%;
+    max-width: 100%;
+    padding-bottom: 40px;
+  }
+  .setup-title { font-size: 24px; }
+  .zgroup { grid-template-columns: 1fr 1fr; }
+  .diff-pills { flex-wrap: wrap; }
 }
 /* ── AI Feedback ── */
 #ai-feedback-section {
@@ -415,95 +561,6 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
   transition: opacity .28s;
 }
 .t-overlay.open { opacity: 1; pointer-events: auto; }
-
-@media (max-width: 640px) {
-  /* ── topbar fix ── */
-  .train-bar { padding: 8px 12px; gap: 8px; }
-  #model-status { display: none; }
-  .btn-stop-top { padding: 7px 10px; font-size: 10px; white-space: nowrap; }
-  .tstat { min-width: 44px; padding: 4px 6px; }
-  .tstat-val { font-size: 16px; }
-  .tstat-lbl { font-size: 7px; }
-
-  /* ── results fix ── */
-  #screen-results { padding: 16px; align-items: flex-start; }
-  .results-box { padding-bottom: 24px; }
-  .r-score { font-size: 56px; }
-  .r-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .r-actions {
-    flex-direction: column;
-    position: sticky;
-    bottom: 0;
-    background: var(--bg);
-    padding: 12px 0 4px;
-    border-top: 1px solid var(--border);
-    margin-top: 8px;
-  }
-  .r-actions .btn-primary,
-  .r-actions .btn-secondary { width: 100%; text-align: center; }
-}
-
-/* ── MOBILE TOPBAR FIX ── */
-@media (max-width: 768px) {
-
-  .train-bar {
-    padding: 6px 10px;
-    flex-wrap: nowrap;
-    gap: 6px;
-    height: auto;
-  }
-
-  /* Hide brand text — keep only logo icon */
-  .train-brand span,
-  .train-brand {
-    font-size: 0;
-    gap: 0;
-  }
-  .train-brand svg {
-    width: 22px;
-    height: 22px;
-    flex-shrink: 0;
-  }
-
-  /* Stat boxes — smaller and compact */
-  .train-stats {
-    flex: 1;
-    gap: 3px;
-    justify-content: center;
-    flex-wrap: nowrap;
-  }
-  .tstat {
-    padding: 3px 6px;
-    min-width: 44px;
-  }
-  .tstat-val {
-    font-size: 14px;
-  }
-  .tstat-lbl {
-    font-size: 6px;
-    letter-spacing: 1px;
-  }
-
-  /* Model status — hide text on mobile */
-  #model-status {
-    display: none;
-  }
-
-  /* STOP button — always visible */
-  .btn-stop-top {
-    padding: 6px 10px;
-    font-size: 10px;
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-
-  /* Hamburger smaller */
-  .t-hamburger {
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
-  }
-}
 
 @media (max-width: 380px) {
   .tstat { min-width: 36px; padding: 3px 4px; }
