@@ -659,6 +659,7 @@ function beginSession() {
   setRing(1); updateSpeedDisplay(null, session.timePerDir*1000)
   feedback.textContent=calibrated?'Starting in 2s…':'Stand still to calibrate…'
   injectPauseOverlay()
+  if (typeof checkOrientation === 'function') checkOrientation()
   const w=setInterval(()=>{ if(calibrated){ clearInterval(w); feedback.textContent='GO!'; setTimeout(startRound,600) } },300)
 }
 
@@ -718,6 +719,7 @@ function endSession() {
 }
 // ── Results ───────────────────────────────────────────────────
 function showResults() {
+  if (typeof checkOrientation === 'function') setTimeout(checkOrientation, 100)
   resultScreen.classList.add('active')
   const acc=session.totalRounds>0?Math.round(session.hits/session.totalRounds*100):0
   const avgMs=session.roundTimings.length?Math.round(session.roundTimings.reduce((a,b)=>a+b,0)/session.roundTimings.length):null
