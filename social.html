@@ -4,7 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Social — ShuttleStepz</title>
-<link rel="icon" href="/Badminton-AI-trainer_V2/favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 <style>
@@ -38,26 +37,65 @@
 
   /* ── NAV ── */
   nav {
-    position: sticky; top: 0; z-index: 100;
-    background: rgba(12,13,16,.85);
-    backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 300;
+    background: rgba(9,12,14,.92);
+    backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
     padding: 0 20px;
     display: flex; align-items: center; gap: 12px;
-    height: 56px;
+    height: 64px;
   }
-  .nav-logo {
-    font-weight: 700; font-size: 17px; letter-spacing: -.3px;
-    color: var(--accent); text-decoration: none; margin-right: auto;
+  .hamburger {
+    width: 40px; height: 40px;
+    background: #161b1e; border: 1px solid var(--border);
+    border-radius: 10px; cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 5px; flex-shrink: 0; transition: all .2s;
   }
-  .nav-logo span { color: var(--txt-dim); font-weight: 400; }
-  .nav-back {
-    display: flex; align-items: center; gap: 6px;
-    color: var(--txt-mid); font-size: 13px; font-weight: 500;
-    text-decoration: none; padding: 6px 12px; border-radius: var(--r-sm);
-    border: 1px solid var(--border); transition: all .2s;
+  .hamburger:hover { border-color: #3a3d48; background: #1d2427; }
+  .hamburger span {
+    display: block; width: 18px; height: 1.5px;
+    background: #7a9080; border-radius: 2px; transition: all .25s;
   }
-  .nav-back:hover { color: var(--txt); border-color: #3a3d48; background: var(--surface); }
+  .hamburger:hover span { background: var(--txt); }
+  .hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+  .hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+  .hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+  .nav-brand {
+    display: flex; align-items: center; gap: 9px;
+    text-decoration: none; color: var(--txt); flex-shrink: 0; margin-right: auto;
+  }
+  .nav-brand img { border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+  .nav-label {
+    font-size: 13px; font-weight: 600; color: #7a9080; padding-left: 4px;
+  }
+  /* Drawer */
+  .drawer {
+    position: fixed; top: 64px; left: 0; bottom: 0;
+    width: 240px; background: #0f1315;
+    border-right: 1px solid var(--border);
+    z-index: 250; transform: translateX(-100%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    padding: 20px 14px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .drawer.open { transform: translateX(0); box-shadow: 4px 0 48px rgba(0,0,0,.55); }
+  .drawer-overlay {
+    position: fixed; inset: 0; top: 64px;
+    background: rgba(0,0,0,.6); z-index: 240;
+    opacity: 0; pointer-events: none; transition: opacity .28s;
+  }
+  .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+  .drawer-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px;
+    font-size: 13.5px; font-weight: 500; color: #7a9080;
+    text-decoration: none; transition: all .18s;
+  }
+  .drawer-item:hover { background: #161b1e; color: var(--txt); }
+  .drawer-item.active { background: rgba(57,224,122,.1); color: #39e07a; font-weight: 600; }
+  .drawer-item svg { flex-shrink: 0; opacity: .6; }
+  .drawer-item:hover svg, .drawer-item.active svg { opacity: 1; }
 
   /* ── LAYOUT ── */
   .shell {
@@ -373,11 +411,44 @@
 
 <!-- NAV -->
 <nav>
-  <a href="/Badminton-AI-trainer_V2/dashboard.html" class="nav-logo">Shuttle<span>Stepz</span></a>
-  <a href="/Badminton-AI-trainer_V2/dashboard.html" class="nav-back">
-    ← Dashboard
+  <button class="hamburger" id="hamburger-btn" onclick="toggleDrawer()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="/Badminton-AI-trainer_V2/dashboard.html" class="nav-brand">
+    <img src="/Badminton-AI-trainer_V2/favicon.ico" width="28" height="28"/>
+    <span style="font-size:15px;font-weight:700;color:#eaf0eb;letter-spacing:-.3px">Shuttle</span><span style="font-size:15px;font-weight:400;color:#eaf0eb;letter-spacing:-.3px">stepz</span>
   </a>
+  <span class="nav-label">Social</span>
 </nav>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer">
+  <a class="drawer-item" href="/Badminton-AI-trainer_V2/dashboard.html">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    Overview
+  </a>
+  <a class="drawer-item" href="/Badminton-AI-trainer_V2/trainer.html">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    Train
+  </a>
+  <a class="drawer-item" href="/Badminton-AI-trainer_V2/dashboard.html#history">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+    History
+  </a>
+  <a class="drawer-item" href="/Badminton-AI-trainer_V2/dashboard.html#leaderboard">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="18 20 18 10"/><polyline points="12 20 12 4"/><polyline points="6 20 6 14"/></svg>
+    Leaderboard
+  </a>
+  <a class="drawer-item active" href="/Badminton-AI-trainer_V2/social.html">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    Social
+  </a>
+  <a class="drawer-item" href="/Badminton-AI-trainer_V2/dashboard.html#profile">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Profile
+  </a>
+</div>
+<div class="drawer-overlay" id="drawer-overlay" onclick="toggleDrawer()"></div>
 
 <!-- AUTH GATE -->
 <div id="auth-gate" style="display:none; flex-direction:column; align-items:center; justify-content:center; flex:1; gap:12px; padding:40px; text-align:center">
@@ -402,21 +473,7 @@
         <input type="text" id="friend-search" placeholder="Filter friends…"/>
       </div>
       <div class="friend-list" id="friend-list">
-        <div class="friend-item">
-          <div class="avatar" style="background:linear-gradient(135deg,#5b6cf9,#00e5a0)">AR</div>
-          <div class="friend-info"><div class="friend-name">Arjun Reddy</div><div class="friend-meta">@arjun_smash</div></div>
-          <div class="friend-xp">3.2k XP</div>
-        </div>
-        <div class="friend-item">
-          <div class="avatar" style="background:linear-gradient(135deg,#f97316,#5b6cf9)">PK</div>
-          <div class="friend-info"><div class="friend-name">Priya Kumar</div><div class="friend-meta">@priya_drop</div></div>
-          <div class="friend-xp">1.8k XP</div>
-        </div>
-        <div class="friend-item">
-          <div class="avatar" style="background:linear-gradient(135deg,#00e5a0,#f97316)">SN</div>
-          <div class="friend-info"><div class="friend-name">Sai Nath</div><div class="friend-meta">@sainath99</div></div>
-          <div class="friend-xp">940 XP</div>
-        </div>
+        <div class="empty-list">No friends yet — search for players →</div>
       </div>
     </div>
   </div>
@@ -443,16 +500,7 @@
         <input type="text" id="player-search" placeholder="Search by name or @username…"/>
       </div>
       <div id="search-results" class="search-results">
-        <div class="search-result-item">
-          <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#5b6cf9,#00e5a0)">KS</div>
-          <div class="friend-info"><div class="friend-name">Kiran Shah</div><div class="friend-meta">Lv 5 · 2.1k XP</div></div>
-          <button class="add-btn">+ Add</button>
-        </div>
-        <div class="search-result-item">
-          <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#f97316,#00e5a0)">MT</div>
-          <div class="friend-info"><div class="friend-name">Meera T</div><div class="friend-meta">Lv 3 · 880 XP</div></div>
-          <button class="add-btn friends-tag">Friends</button>
-        </div>
+        <div class="empty-list">Type to find players 🔍</div>
       </div>
     </div>
 
@@ -463,14 +511,7 @@
         <span class="badge-count" id="req-count">0</span>
       </div>
       <div id="requests-list">
-        <div class="req-item">
-          <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#5b6cf9,#f97316)">RV</div>
-          <div class="friend-info"><div class="friend-name">Rahul V</div><div class="friend-meta">wants to be friends</div></div>
-          <div class="req-actions">
-            <button class="accept-btn">✓</button>
-            <button class="decline-btn">✕</button>
-          </div>
-        </div>
+        <div class="empty-list" style="padding:20px 18px">No pending requests</div>
       </div>
     </div>
 
@@ -766,6 +807,14 @@ onAuthReady(user => {
   listenFriends(renderFriends)
   listenFriendRequests(renderRequests)
 })
+</script>
+
+<script>
+function toggleDrawer() {
+  document.getElementById('drawer').classList.toggle('open');
+  document.getElementById('drawer-overlay').classList.toggle('open');
+  document.getElementById('hamburger-btn').classList.toggle('open');
+}
 </script>
 </body>
 </html>
