@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Social — ShuttleStepz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+  /* ── TOKENS ── */
+  :root {
+    --bg:        #0c0d10;
+    --surface:   #13151a;
+    --card:      #1a1d25;
+    --border:    #252830;
+    --accent:    #00e5a0;
+    --accent2:   #5b6cf9;
+    --warn:      #f97316;
+    --txt:       #e8eaf0;
+    --txt-dim:   #6b7280;
+    --txt-mid:   #9ca3af;
+    --radius:    14px;
+    --r-sm:      8px;
+    --font:      'Space Grotesk', sans-serif;
+    --mono:      'JetBrains Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--txt);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(12,13,16,.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    display: flex; align-items: center; gap: 12px;
+    height: 56px;
+  }
+  .nav-logo {
+    font-weight: 700; font-size: 17px; letter-spacing: -.3px;
+    color: var(--accent); text-decoration: none; margin-right: auto;
+  }
+  .nav-logo span { color: var(--txt-dim); font-weight: 400; }
+  .nav-back {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--txt-mid); font-size: 13px; font-weight: 500;
+    text-decoration: none; padding: 6px 12px; border-radius: var(--r-sm);
+    border: 1px solid var(--border); transition: all .2s;
+  }
+  .nav-back:hover { color: var(--txt); border-color: #3a3d48; background: var(--surface); }
+
+  /* ── LAYOUT ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 260px 1fr 320px;
+    gap: 0;
+    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 24px 16px;
+    gap: 20px;
+  }
+
+  /* ── SIDEBAR PANELS ── */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .panel-header {
+    padding: 16px 18px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title {
+    font-size: 13px; font-weight: 600;
+    color: var(--txt-mid); text-transform: uppercase; letter-spacing: .8px;
+  }
+  .badge-count {
+    background: var(--accent); color: #000;
+    font-size: 11px; font-weight: 700;
+    padding: 2px 7px; border-radius: 20px;
+    font-family: var(--mono);
+    display: none;
+  }
+  .badge-count.visible { display: inline-block; }
+
+  /* ── SEARCH BAR ── */
+  .search-wrap {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .search-wrap input {
+    width: 100%; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--r-sm);
+    padding: 9px 12px 9px 36px;
+    color: var(--txt); font-family: var(--font); font-size: 14px;
+    outline: none; transition: border-color .2s;
+  }
+  .search-wrap input::placeholder { color: var(--txt-dim); }
+  .search-wrap input:focus { border-color: var(--accent2); }
+  .search-icon {
+    position: absolute; left: 30px; top: 50%; transform: translateY(-50%);
+    color: var(--txt-dim); pointer-events: none;
+  }
+
+  /* ── FRIEND LIST ── */
+  .friend-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .friend-list::-webkit-scrollbar { width: 4px; }
+  .friend-list::-webkit-scrollbar-track { background: transparent; }
+  .friend-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .friend-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 18px; cursor: pointer;
+    transition: background .15s;
+    position: relative;
+  }
+  .friend-item:hover { background: var(--surface); }
+  .friend-item.active { background: rgba(0,229,160,.07); }
+  .friend-item.active::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--accent); border-radius: 0 2px 2px 0;
+  }
+  .avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: #000;
+    flex-shrink: 0; position: relative; overflow: hidden;
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .avatar-sm { width: 30px; height: 30px; font-size: 11px; }
+  .avatar-lg { width: 52px; height: 52px; font-size: 20px; }
+  .online-dot {
+    position: absolute; bottom: 0; right: 0;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--card);
+  }
+  .friend-info { flex: 1; min-width: 0; }
+  .friend-name { font-size: 14px; font-weight: 600; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .friend-meta { font-size: 12px; color: var(--txt-dim); margin-top: 1px; }
+  .friend-xp { font-family: var(--mono); font-size: 11px; color: var(--accent); white-space: nowrap; }
+
+  /* ── MAIN AREA ── */
+  .main-area {
+    display: flex; flex-direction: column; gap: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  /* Chat header */
+  .chat-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card);
+  }
+  .chat-header-info { flex: 1; }
+  .chat-header-name { font-size: 16px; font-weight: 700; }
+  .chat-header-status { font-size: 12px; color: var(--accent); margin-top: 2px; }
+  .chat-header-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: var(--r-sm);
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--txt-mid); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s; font-size: 16px;
+  }
+  .icon-btn:hover { color: var(--txt); border-color: #3a3d48; }
+
+  /* Messages */
+  .messages-wrap {
+    flex: 1; overflow-y: auto; padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+    min-height: 0;
+  }
+  .messages-wrap::-webkit-scrollbar { width: 4px; }
+  .messages-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg-row { display: flex; gap: 10px; align-items: flex-end; }
+  .msg-row.mine { flex-direction: row-reverse; }
+  .msg-bubble {
+    max-width: 68%; padding: 10px 14px;
+    border-radius: 16px 16px 16px 4px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 14px; line-height: 1.55; color: var(--txt);
+    position: relative;
+  }
+  .msg-row.mine .msg-bubble {
+    background: rgba(91,108,249,.18);
+    border-color: rgba(91,108,249,.35);
+    border-radius: 16px 16px 4px 16px;
+    color: #d4d8ff;
+  }
+  .msg-time {
+    font-size: 11px; color: var(--txt-dim); white-space: nowrap;
+    margin-bottom: 4px; font-family: var(--mono);
+  }
+  .msg-row.mine .msg-time { text-align: right; }
+
+  /* Chat input */
+  .chat-input-row {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 10px; align-items: center;
+  }
+  .chat-input-row input {
+    flex: 1; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 24px;
+    padding: 10px 16px; color: var(--txt);
+    font-family: var(--font); font-size: 14px; outline: none;
+    transition: border-color .2s;
+  }
+  .chat-input-row input::placeholder { color: var(--txt-dim); }
+  .chat-input-row input:focus { border-color: var(--accent2); }
+  .send-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--accent); border: none;
+    color: #000; cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .15s, opacity .15s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { transform: scale(1.08); }
+  .send-btn:active { transform: scale(.94); }
+
+  /* Empty state */
+  .empty-chat {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px; color: var(--txt-dim); padding: 40px;
+    text-align: center;
+  }
+  .empty-icon { font-size: 48px; opacity: .35; }
+  .empty-chat h3 { font-size: 16px; font-weight: 600; color: var(--txt-mid); }
+  .empty-chat p { font-size: 13px; max-width: 200px; line-height: 1.5; }
+
+  /* ── RIGHT PANEL — SEARCH & REQUESTS ── */
+  .right-panel { display: flex; flex-direction: column; gap: 20px; }
+
+  /* Search results */
+  .search-results { padding: 8px 0; }
+  .search-result-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 18px; transition: background .15s;
+  }
+  .search-result-item:hover { background: var(--surface); }
+  .add-btn {
+    padding: 5px 12px; border-radius: 20px; font-size: 12px;
+    font-weight: 600; font-family: var(--font); cursor: pointer;
+    border: 1px solid var(--accent); background: transparent;
+    color: var(--accent); white-space: nowrap;
+    transition: all .2s;
+  }
+  .add-btn:hover { background: var(--accent); color: #000; }
+  .add-btn.sent { border-color: var(--txt-dim); color: var(--txt-dim); pointer-events: none; }
+  .add-btn.friends-tag { border-color: var(--accent2); color: var(--accent2); pointer-events: none; }
+
+  /* Requests */
+  .req-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; border-bottom: 1px solid var(--border);
+  }
+  .req-item:last-child { border-bottom: none; }
+  .req-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .accept-btn, .decline-btn {
+    padding: 5px 10px; border-radius: var(--r-sm);
+    font-size: 12px; font-weight: 600; cursor: pointer; border: none;
+    font-family: var(--font); transition: all .2s;
+  }
+  .accept-btn { background: var(--accent); color: #000; }
+  .accept-btn:hover { opacity: .85; }
+  .decline-btn { background: var(--surface); color: var(--txt-dim); border: 1px solid var(--border); }
+  .decline-btn:hover { color: var(--txt); }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--card); border: 1px solid var(--border); border-radius: 24px;
+    padding: 10px 20px; font-size: 13px; font-weight: 500;
+    color: var(--txt); z-index: 9999; transition: transform .3s ease;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.success .toast-dot { color: var(--accent); }
+  #toast.error .toast-dot { color: var(--warn); }
+
+  /* Loader */
+  .loader {
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px; color: var(--txt-dim); font-size: 13px; gap: 8px;
+  }
+  .spin {
+    width: 16px; height: 16px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Date divider */
+  .date-divider {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--txt-dim); font-size: 11px; text-transform: uppercase;
+    letter-spacing: .6px; font-family: var(--mono);
+  }
+  .date-divider::before, .date-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* Level pill */
+  .level-pill {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    padding: 2px 7px; border-radius: 20px;
+    background: rgba(91,108,249,.15); color: var(--accent2);
+    border: 1px solid rgba(91,108,249,.25);
+  }
+
+  /* Empty friends */
+  .empty-list {
+    padding: 24px 18px; text-align: center;
+    color: var(--txt-dim); font-size: 13px; line-height: 1.6;
+  }
+
+  /* Auth gate */
+  #auth-gate {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px; padding: 40px; text-align: center;
+  }
+  #auth-gate h2 { font-size: 22px; font-weight: 700; }
+  #auth-gate p { color: var(--txt-dim); font-size: 14px; }
+  .primary-btn {
+    display: inline-block; margin-top: 8px;
+    padding: 10px 24px; border-radius: 24px;
+    background: var(--accent); color: #000; font-weight: 700;
+    font-family: var(--font); font-size: 14px; text-decoration: none;
+    border: none; cursor: pointer; transition: opacity .2s;
+  }
+  .primary-btn:hover { opacity: .88; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 960px) {
+    .shell { grid-template-columns: 240px 1fr; }
+    .right-panel { display: none; } /* fold into a modal on tablet */
+  }
+  @media (max-width: 640px) {
+    .shell { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
+    .friends-col { display: none; }
+    .main-area { min-height: 60vh; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/Badminton-AI-trainer_V2/dashboard.html" class="nav-logo">Shuttle<span>Stepz</span></a>
+  <a href="/Badminton-AI-trainer_V2/dashboard.html" class="nav-back">
+    ← Dashboard
+  </a>
+</nav>
+
+<!-- AUTH GATE -->
+<div id="auth-gate" style="display:none; flex-direction:column; align-items:center; justify-content:center; flex:1; gap:12px; padding:40px; text-align:center">
+  <div style="font-size:48px">🔒</div>
+  <h2>Sign in to use Social</h2>
+  <p>Connect with other ShuttleStepz players, chat, and track friends' progress.</p>
+  <a href="/Badminton-AI-trainer_V2/login.html" class="primary-btn">Sign In</a>
+</div>
+
+<!-- MAIN SHELL -->
+<div class="shell" id="main-shell" style="display:grid">
+
+  <!-- LEFT — Friends list -->
+  <div class="friends-col">
+    <div class="panel" style="height:100%">
+      <div class="panel-header">
+        <span class="panel-title">Friends</span>
+        <span class="badge-count" id="friend-count">0</span>
+      </div>
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="friend-search" placeholder="Filter friends…"/>
+      </div>
+      <div class="friend-list" id="friend-list">
+        <div class="friend-item">
+          <div class="avatar" style="background:linear-gradient(135deg,#5b6cf9,#00e5a0)">AR</div>
+          <div class="friend-info"><div class="friend-name">Arjun Reddy</div><div class="friend-meta">@arjun_smash</div></div>
+          <div class="friend-xp">3.2k XP</div>
+        </div>
+        <div class="friend-item">
+          <div class="avatar" style="background:linear-gradient(135deg,#f97316,#5b6cf9)">PK</div>
+          <div class="friend-info"><div class="friend-name">Priya Kumar</div><div class="friend-meta">@priya_drop</div></div>
+          <div class="friend-xp">1.8k XP</div>
+        </div>
+        <div class="friend-item">
+          <div class="avatar" style="background:linear-gradient(135deg,#00e5a0,#f97316)">SN</div>
+          <div class="friend-info"><div class="friend-name">Sai Nath</div><div class="friend-meta">@sainath99</div></div>
+          <div class="friend-xp">940 XP</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER — Chat -->
+  <div class="main-area" id="chat-area">
+    <div class="empty-chat" id="chat-empty">
+      <div class="empty-icon">🏸</div>
+      <h3>Pick a friend to chat</h3>
+      <p>Select someone from your friends list to start a conversation.</p>
+    </div>
+  </div>
+
+  <!-- RIGHT — Search + Requests -->
+  <div class="right-panel">
+
+    <!-- Find Players -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Find Players</span>
+      </div>
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="player-search" placeholder="Search by name or @username…"/>
+      </div>
+      <div id="search-results" class="search-results">
+        <div class="search-result-item">
+          <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#5b6cf9,#00e5a0)">KS</div>
+          <div class="friend-info"><div class="friend-name">Kiran Shah</div><div class="friend-meta">Lv 5 · 2.1k XP</div></div>
+          <button class="add-btn">+ Add</button>
+        </div>
+        <div class="search-result-item">
+          <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#f97316,#00e5a0)">MT</div>
+          <div class="friend-info"><div class="friend-name">Meera T</div><div class="friend-meta">Lv 3 · 880 XP</div></div>
+          <button class="add-btn friends-tag">Friends</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Friend Requests -->
+    <div class="panel" id="requests-panel">
+      <div class="panel-header">
+        <span class="panel-title">Requests</span>
+        <span class="badge-count" id="req-count">0</span>
+      </div>
+      <div id="requests-list">
+        <div class="req-item">
+          <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#5b6cf9,#f97316)">RV</div>
+          <div class="friend-info"><div class="friend-name">Rahul V</div><div class="friend-meta">wants to be friends</div></div>
+          <div class="req-actions">
+            <button class="accept-btn">✓</button>
+            <button class="decline-btn">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast">
+  <span class="toast-dot">●</span>
+  <span id="toast-msg"></span>
+</div>
+
+<!-- ═══════════════════════════ SCRIPTS ═══════════════════════════ -->
+<script type="module">
+import {
+  onAuthReady, getCurrentUser,
+  listenFriends, listenFriendRequests,
+  sendFriendRequest, respondToFriendRequest,
+  searchUsersByUsername, getFriendshipStatus,
+  sendMessage, listenChat,
+} from '/Badminton-AI-trainer_V2/js/database.js'
+
+/* ── Helpers ── */
+function initials(name) {
+  return (name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
+}
+function fmtTime(ts) {
+  if (!ts) return ''
+  const d = ts.toDate ? ts.toDate() : new Date(ts)
+  return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
+}
+function fmtXP(xp) {
+  return xp >= 1000 ? (xp/1000).toFixed(1)+'k' : xp
+}
+
+/* ── Toast ── */
+function toast(msg, type='success') {
+  const el = document.getElementById('toast')
+  const msgEl = document.getElementById('toast-msg')
+  msgEl.textContent = msg
+  el.className = `show ${type}`
+  clearTimeout(el._t)
+  el._t = setTimeout(() => el.className = '', 3000)
+}
+
+/* ── State ── */
+let myUID = null
+let activeFriendUID = null
+let chatUnsub = null
+let allFriends = []
+
+/* ── Avatar ── */
+function makeAvatar(profile, size='') {
+  const cls = size ? `avatar avatar-${size}` : 'avatar'
+  if (profile?.avatarURL) {
+    return `<div class="${cls}"><img src="${profile.avatarURL}" alt=""/></div>`
+  }
+  return `<div class="${cls}">${initials(profile?.displayName || profile?.username)}</div>`
+}
+
+/* ── Friends list ── */
+function renderFriends(friends) {
+  allFriends = friends
+  const listEl = document.getElementById('friend-list')
+  const countEl = document.getElementById('friend-count')
+  countEl.textContent = friends.length
+  if (friends.length) countEl.classList.add('visible')
+  else countEl.classList.remove('visible')
+
+  const filter = document.getElementById('friend-search').value.toLowerCase()
+  const shown = filter ? friends.filter(f =>
+    (f.displayName||'').toLowerCase().includes(filter) ||
+    (f.username||'').toLowerCase().includes(filter)
+  ) : friends
+
+  if (!shown.length) {
+    listEl.innerHTML = `<div class="empty-list">${filter ? 'No matches' : 'No friends yet — search for players →'}</div>`
+    return
+  }
+
+  listEl.innerHTML = shown.map(f => `
+    <div class="friend-item ${f.uid === activeFriendUID ? 'active' : ''}" data-uid="${f.uid}">
+      <div class="avatar" style="background:linear-gradient(135deg,#5b6cf9,#00e5a0)">
+        ${f.avatarURL ? `<img src="${f.avatarURL}"/>` : initials(f.displayName)}
+        <div class="online-dot" style="display:none"></div>
+      </div>
+      <div class="friend-info">
+        <div class="friend-name">${f.displayName || 'Player'}</div>
+        <div class="friend-meta">${f.username ? '@'+f.username : ''}</div>
+      </div>
+      <div class="friend-xp">${fmtXP(f.xp||0)} XP</div>
+    </div>
+  `).join('')
+
+  listEl.querySelectorAll('.friend-item').forEach(el => {
+    el.addEventListener('click', () => openChat(el.dataset.uid, shown.find(f => f.uid === el.dataset.uid)))
+  })
+}
+
+document.getElementById('friend-search').addEventListener('input', () => renderFriends(allFriends))
+
+/* ── Open Chat ── */
+function openChat(uid, profile) {
+  activeFriendUID = uid
+  document.querySelectorAll('.friend-item').forEach(el => el.classList.remove('active'))
+  document.querySelector(`.friend-item[data-uid="${uid}"]`)?.classList.add('active')
+
+  const area = document.getElementById('chat-area')
+  area.innerHTML = `
+    <div class="chat-header">
+      ${makeAvatar(profile)}
+      <div class="chat-header-info">
+        <div class="chat-header-name">${profile?.displayName || 'Player'}</div>
+        <div class="chat-header-status">Lv ${profile?.level||1} · ${fmtXP(profile?.xp||0)} XP</div>
+      </div>
+    </div>
+    <div class="messages-wrap" id="messages"></div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Message ${profile?.displayName||'player'}…" maxlength="500"/>
+      <button class="send-btn" id="send-btn" title="Send">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  `
+
+  const input = document.getElementById('chat-input')
+  const sendBtn = document.getElementById('send-btn')
+
+  if (chatUnsub) chatUnsub()
+  chatUnsub = listenChat(uid, renderMessages)
+
+  async function doSend() {
+    const txt = input.value.trim()
+    if (!txt) return
+    input.value = ''
+    try {
+      await sendMessage(uid, txt)
+    } catch(e) {
+      toast('Failed to send message', 'error')
+    }
+  }
+
+  sendBtn.addEventListener('click', doSend)
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) doSend() })
+}
+
+/* ── Render Messages ── */
+function renderMessages(msgs) {
+  const wrap = document.getElementById('messages')
+  if (!wrap) return
+  if (!msgs.length) {
+    wrap.innerHTML = `<div style="text-align:center;color:var(--txt-dim);font-size:13px;padding-top:32px">Say hi! 👋</div>`
+    return
+  }
+
+  let html = ''
+  let lastDay = ''
+  msgs.forEach(m => {
+    const isMine = m.from === myUID
+    const ts = m.createdAt?.toDate ? m.createdAt.toDate() : new Date()
+    const day = ts.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'})
+    if (day !== lastDay) {
+      html += `<div class="date-divider">${day}</div>`
+      lastDay = day
+    }
+    html += `
+      <div class="msg-row ${isMine ? 'mine' : ''}">
+        <div class="msg-bubble">
+          ${m.text}
+        </div>
+      </div>
+      <div class="msg-time" style="${isMine?'text-align:right;':''}padding:0 ${isMine?'4':'42'}px">${fmtTime(m.createdAt)}</div>
+    `
+  })
+  wrap.innerHTML = html
+  wrap.scrollTop = wrap.scrollHeight
+}
+
+/* ── Friend Requests ── */
+function renderRequests(reqs) {
+  const el = document.getElementById('requests-list')
+  const cnt = document.getElementById('req-count')
+  cnt.textContent = reqs.length
+  if (reqs.length) cnt.classList.add('visible'); else cnt.classList.remove('visible')
+
+  if (!reqs.length) {
+    el.innerHTML = `<div class="empty-list" style="padding:20px 18px">No pending requests</div>`
+    return
+  }
+  el.innerHTML = reqs.map(r => `
+    <div class="req-item" id="req-${r.id}">
+      ${makeAvatar(r.fromProfile)}
+      <div class="friend-info">
+        <div class="friend-name">${r.fromProfile?.displayName || 'Player'}</div>
+        <div class="friend-meta">${r.fromProfile?.username ? '@'+r.fromProfile.username : 'wants to be friends'}</div>
+      </div>
+      <div class="req-actions">
+        <button class="accept-btn" data-rid="${r.id}">✓</button>
+        <button class="decline-btn" data-rid="${r.id}">✕</button>
+      </div>
+    </div>
+  `).join('')
+
+  el.querySelectorAll('.accept-btn').forEach(btn => btn.addEventListener('click', async () => {
+    try {
+      await respondToFriendRequest(btn.dataset.rid, true)
+      toast('Friend added! 🏸')
+    } catch(e) { toast(e.message, 'error') }
+  }))
+  el.querySelectorAll('.decline-btn').forEach(btn => btn.addEventListener('click', async () => {
+    try {
+      await respondToFriendRequest(btn.dataset.rid, false)
+      toast('Request declined')
+    } catch(e) { toast(e.message, 'error') }
+  }))
+}
+
+/* ── Player Search ── */
+let searchTimer = null
+document.getElementById('player-search').addEventListener('input', e => {
+  clearTimeout(searchTimer)
+  const q = e.target.value.trim()
+  if (!q) {
+    document.getElementById('search-results').innerHTML = '<div class="empty-list">Type to find players 🔍</div>'
+    return
+  }
+  searchTimer = setTimeout(() => doSearch(q), 350)
+})
+
+async function doSearch(q) {
+  const el = document.getElementById('search-results')
+  el.innerHTML = '<div class="loader"><div class="spin"></div> Searching…</div>'
+  try {
+    const results = await searchUsersByUsername(q)
+    if (!results.length) {
+      el.innerHTML = '<div class="empty-list">No players found</div>'
+      return
+    }
+    // Check friendship status for each
+    const withStatus = await Promise.all(results.map(async u => {
+      const status = await getFriendshipStatus(u.uid)
+      return { ...u, status }
+    }))
+
+    el.innerHTML = withStatus.map(u => {
+      let btnHtml = ''
+      if (u.status === 'friends') {
+        btnHtml = `<button class="add-btn friends-tag">Friends</button>`
+      } else if (u.status === 'pending_sent') {
+        btnHtml = `<button class="add-btn sent">Sent ✓</button>`
+      } else if (u.status === 'pending_received') {
+        btnHtml = `<button class="add-btn" style="border-color:var(--warn);color:var(--warn)" data-uid="${u.uid}">Accept</button>`
+      } else {
+        btnHtml = `<button class="add-btn" data-uid="${u.uid}">+ Add</button>`
+      }
+      return `
+        <div class="search-result-item">
+          ${makeAvatar(u)}
+          <div class="friend-info">
+            <div class="friend-name">${u.displayName || 'Player'}</div>
+            <div class="friend-meta">Lv ${u.level||1} · ${fmtXP(u.xp||0)} XP</div>
+          </div>
+          ${btnHtml}
+        </div>
+      `
+    }).join('')
+
+    el.querySelectorAll('.add-btn[data-uid]').forEach(btn => btn.addEventListener('click', async () => {
+      const uid = btn.dataset.uid
+      try {
+        await sendFriendRequest(uid)
+        btn.textContent = 'Sent ✓'
+        btn.classList.add('sent')
+        toast('Friend request sent! 🏸')
+      } catch(e) { toast(e.message, 'error') }
+    }))
+  } catch(e) {
+    el.innerHTML = `<div class="empty-list">Error searching: ${e.message}</div>`
+  }
+}
+
+/* ── INIT ── */
+onAuthReady(user => {
+  if (!user) {
+    document.getElementById('auth-gate').style.display = 'flex'
+    document.getElementById('main-shell').style.display = 'none'
+    return
+  }
+  myUID = user.uid
+  document.getElementById('auth-gate').style.display = 'none'
+  document.getElementById('main-shell').style.display = 'grid'
+
+  listenFriends(renderFriends)
+  listenFriendRequests(renderRequests)
+})
+</script>
+</body>
+</html>
