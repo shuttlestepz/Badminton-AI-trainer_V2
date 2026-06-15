@@ -519,5 +519,221 @@ export default {
   listenLeaderboard, getUserRank,
   getSettings, saveSettings, listenSettings,
   getStudentsBySchoolCode, listenStudentsBySchoolCode,
-  unsubscribeAll, unsubscribe, resetUserData, saveAITips, getAITips,deleteUserData,
+  unsubscribeAll, unsubscribe, resetUserData, saveAITips, getAITips, deleteUserData,
+  searchUsersByUsername, sendFriendRequest, respondToFriendRequest,
+  listenFriendRequests, listenFriends, getFriendshipStatus,
+  sendMessage, listenChat, listenMyChats,
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   13. SOCIAL — Find Players, Friends, Chat
+═══════════════════════════════════════════════════════════════ */
+
+// ── Search users by username/displayName (prefix match) ──
+export async function searchUsersByUsername(searchQuery) {
+  const term = searchQuery.trim().toLowerCase()
+  if (!term) return []
+
+  const snap = await getDocs(collection(db, 'leaderboard'))
+  const myUid = _requireUID()
+
+  return snap.docs
+    .map(d => ({ uid: d.id, ...d.data() }))
+    .filter(u => u.uid !== myUid)
+    .filter(u => {
+      const uname = (u.username || '').toLowerCase()
+      const dname = (u.displayName || '').toLowerCase()
+      return uname.includes(term) || dname.includes(term)
+    })
+    .slice(0, 20)
+}
+
+// ── Friend requests ──
+export async function sendFriendRequest(toUid) {
+  const fromUid = _requireUID()
+  if (fromUid === toUid) throw new Error('Cannot add yourself.')
+
+  // Check existing request/friendship
+  const existingQ = query(
+    collection(db, 'friendRequests'),
+    where('from', '==', fromUid),
+    where('to', '==', toUid)
+  )
+  const existing = await getDocs(existingQ)
+  if (!existing.empty) throw new Error('Request already sent.')
+
+  await addDoc(collection(db, 'friendRequests'), {
+    from: fromUid,
+    to: toUid,
+    status: 'pending',
+    createdAt: serverTimestamp(),
+  })
+}
+
+export async function respondToFriendRequest(requestId, accept) {
+  const myUid = _requireUID()
+  const reqRef = doc(db, 'friendRequests', requestId)
+  const reqSnap = await getDoc(reqRef)
+  if (!reqSnap.exists()) throw new Error('Request not found.')
+  const reqData = reqSnap.data()
+  if (reqData.to !== myUid) throw new Error('Not authorized.')
+
+  if (accept) {
+    await updateDoc(reqRef, { status: 'accepted' })
+    // Add to both users' friend lists
+    const batch = writeBatch(db)
+    batch.set(doc(db, 'friends', reqData.from, 'list', reqData.to), {
+      uid: reqData.to, addedAt: serverTimestamp(),
+    })
+    batch.set(doc(db, 'friends', reqData.to, 'list', reqData.from), {
+      uid: reqData.from, addedAt: serverTimestamp(),
+    })
+    await batch.commit()
+  } else {
+    await updateDoc(reqRef, { status: 'declined' })
+  }
+}
+
+export function listenFriendRequests(callback) {
+  const uid = _requireUID()
+  _teardown('friendRequests')
+  const q = query(
+    collection(db, 'friendRequests'),
+    where('to', '==', uid),
+    where('status', '==', 'pending')
+  )
+  const unsub = onSnapshot(q, async (snap) => {
+    const requests = []
+    for (const d of snap.docs) {
+      const data = d.data()
+      let fromProfile = {}
+      try {
+        const lbSnap = await getDoc(doc(db, 'leaderboard', data.from))
+        if (lbSnap.exists()) fromProfile = lbSnap.data()
+      } catch(e) {}
+      requests.push({ id: d.id, ...data, fromProfile })
+    }
+    callback(requests)
+  })
+  _unsubscribers['friendRequests'] = unsub
+  return unsub
+}
+
+export function listenFriends(callback) {
+  const uid = _requireUID()
+  _teardown('friends')
+  const q = collection(db, 'friends', uid, 'list')
+  const unsub = onSnapshot(q, async (snap) => {
+    const friends = []
+    for (const d of snap.docs) {
+      const friendUid = d.id
+      let profile = {}
+      try {
+        const lbSnap = await getDoc(doc(db, 'leaderboard', friendUid))
+        if (lbSnap.exists()) profile = lbSnap.data()
+      } catch(e) {}
+      friends.push({ uid: friendUid, ...profile })
+    }
+    callback(friends)
+  })
+  _unsubscribers['friends'] = unsub
+  return unsub
+}
+
+export async function getFriendshipStatus(otherUid) {
+  const myUid = _requireUID()
+
+  // Already friends?
+  const friendSnap = await getDoc(doc(db, 'friends', myUid, 'list', otherUid))
+  if (friendSnap.exists()) return 'friends'
+
+  // Pending request sent by me?
+  const sentQ = query(
+    collection(db, 'friendRequests'),
+    where('from', '==', myUid),
+    where('to', '==', otherUid),
+    where('status', '==', 'pending')
+  )
+  const sent = await getDocs(sentQ)
+  if (!sent.empty) return 'pending_sent'
+
+  // Pending request received from them?
+  const recvQ = query(
+    collection(db, 'friendRequests'),
+    where('from', '==', otherUid),
+    where('to', '==', myUid),
+    where('status', '==', 'pending')
+  )
+  const recv = await getDocs(recvQ)
+  if (!recv.empty) return 'pending_received'
+
+  return 'none'
+}
+
+// ── Chat ──
+function _chatId(uid1, uid2) {
+  return [uid1, uid2].sort().join('_')
+}
+
+export async function sendMessage(otherUid, text) {
+  const myUid = _requireUID()
+  const trimmed = text.trim()
+  if (!trimmed) return
+  const chatId = _chatId(myUid, otherUid)
+
+  await addDoc(collection(db, 'chats', chatId, 'messages'), {
+    from: myUid,
+    text: trimmed,
+    createdAt: serverTimestamp(),
+  })
+
+  await setDoc(doc(db, 'chats', chatId), {
+    participants: [myUid, otherUid],
+    lastMessage: trimmed,
+    lastMessageAt: serverTimestamp(),
+  }, { merge: true })
+}
+
+export function listenChat(otherUid, callback, limitN = 50) {
+  const myUid = _requireUID()
+  const chatId = _chatId(myUid, otherUid)
+  _teardown('chat_' + chatId)
+
+  const q = query(
+    collection(db, 'chats', chatId, 'messages'),
+    orderBy('createdAt', 'asc'),
+    limit(limitN)
+  )
+  const unsub = onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  })
+  _unsubscribers['chat_' + chatId] = unsub
+  return unsub
+}
+
+export function listenMyChats(callback) {
+  const uid = _requireUID()
+  _teardown('myChats')
+  const q = query(
+    collection(db, 'chats'),
+    where('participants', 'array-contains', uid),
+    orderBy('lastMessageAt', 'desc'),
+    limit(30)
+  )
+  const unsub = onSnapshot(q, async (snap) => {
+    const chats = []
+    for (const d of snap.docs) {
+      const data = d.data()
+      const otherUid = data.participants.find(p => p !== uid)
+      let profile = {}
+      try {
+        const lbSnap = await getDoc(doc(db, 'leaderboard', otherUid))
+        if (lbSnap.exists()) profile = lbSnap.data()
+      } catch(e) {}
+      chats.push({ id: d.id, otherUid, ...data, profile })
+    }
+    callback(chats)
+  })
+  _unsubscribers['myChats'] = unsub
+  return unsub
 }
