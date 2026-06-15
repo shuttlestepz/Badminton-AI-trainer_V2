@@ -2964,63 +2964,6 @@ window.setHand               = setHand
 window.saveProfile           = saveProfile
 window.handleAvatarUpload    = handleAvatarUpload
 window.sendResetFromProfile  = sendResetFromProfile
-
-window.showSocialComingSoon = function() {
-  // Create modal if not exists
-  if (!document.getElementById('social-coming-modal')) {
-    const modal = document.createElement('div')
-    modal.id = 'social-coming-modal'
-    modal.style.cssText = `
-      position:fixed;inset:0;z-index:9999;
-      background:rgba(0,0,0,.8);backdrop-filter:blur(12px);
-      display:flex;align-items:center;justify-content:center;padding:20px;
-    `
-    modal.innerHTML = `
-      <div style="background:#0f1315;border:1px solid rgba(57,224,122,.25);border-radius:22px;
-        padding:36px 28px;max-width:360px;width:100%;text-align:center;position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:2px;
-          background:linear-gradient(90deg,transparent,#39e07a,transparent)"></div>
-        <div style="font-size:48px;margin-bottom:16px">🏸</div>
-        <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:800;
-          color:#eaf0eb;margin-bottom:8px">Social Features</div>
-        <div style="font-size:13px;color:#7a9080;line-height:1.7;margin-bottom:20px">
-          Connect with players, challenge friends and train together — coming soon!
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;text-align:left">
-          <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.03);
-            border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:10px 13px;
-            font-size:12.5px;color:#7a9080">
-            <span style="font-size:16px">🔍</span> Search & find players near you
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.03);
-            border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:10px 13px;
-            font-size:12.5px;color:#7a9080">
-            <span style="font-size:16px">💬</span> Chat & invite players
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.03);
-            border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:10px 13px;
-            font-size:12.5px;color:#7a9080">
-            <span style="font-size:16px">🏆</span> Community challenges
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.03);
-            border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:10px 13px;
-            font-size:12.5px;color:#7a9080">
-            <span style="font-size:16px">📞</span> Train together live
-          </div>
-        </div>
-        <button onclick="document.getElementById('social-coming-modal').remove()"
-          style="width:100%;padding:13px;background:#39e07a;color:#0a0d0f;
-          border:none;border-radius:10px;font-family:'Sora',sans-serif;
-          font-size:14px;font-weight:800;cursor:pointer">
-          Got it! Can't wait 🏸
-        </button>
-      </div>`
-    modal.addEventListener('click', e => {
-      if (e.target === modal) modal.remove()
-    })
-    document.body.appendChild(modal)
-  }
-}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
