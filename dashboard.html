@@ -2508,7 +2508,7 @@ window.deleteAccount = async () => {
     if (!user) return
 
     // Delete Firestore user data
-    await DB.deleteUserData?.(user.uid)
+    await DB.deleteUserData(user.uid)
 
     // Delete Firebase Auth account
     await user.delete()
