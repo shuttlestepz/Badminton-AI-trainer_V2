@@ -645,6 +645,8 @@ function renderMessages(msgs){
   let html='',lastDay=''
   msgs.forEach(m=>{
     const mine=m.from===myUID
+    // At the top of renderMessages, add:
+    const theirName = (mine ? 'You' : (activeChatProfile?.displayName || 'Them')).replace(/'/g, "\\'")
     const ts=m.createdAt?.toDate?m.createdAt.toDate():new Date()
     const day=ts.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})
     if(day!==lastDay){html+=`<div class="date-sep">${day}</div>`;lastDay=day}
@@ -656,7 +658,7 @@ function renderMessages(msgs){
     <div class="msg-wrap ${mine?'mine':''}" data-id="${m.id}" data-mine="${mine}" data-text="${(m.text||'').replace(/"/g,'&quot;')}">
       <div class="msg-actions">
         <button class="ma-btn" title="React" onclick="quickReact('${m.id}','❤️')">❤️</button>
-        <button class="ma-btn" title="Reply" onclick="setReply('${m.id}','${(m.text||'').replace(/'/g,'\\'')}','${mine?'You':(activeChatProfile?.displayName||'Them')}')">↩️</button>
+        <button class="ma-btn" title="Reply" onclick="setReply('${m.id}','${(m.text||'').replace(/'/g,"\\'")}','${theirName}')">↩️</button>
         <button class="ma-btn" title="More" onclick="showCtx(event,'${m.id}',${mine})">⋯</button>
       </div>
       <div class="msg-row ${mine?'mine':''}">
