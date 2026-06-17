@@ -608,7 +608,7 @@ function openChat(uid,profile){
   }
 }
 
-function togglePicker(type){
+window.togglePicker=function(type){
   const ep=$('emoji-picker'),gp=$('gif-picker')
   if(type==='emoji'){ep.classList.toggle('show');gp.classList.remove('show')}
   else{gp.classList.toggle('show');ep.classList.remove('show')}
