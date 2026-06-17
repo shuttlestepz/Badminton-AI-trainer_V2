@@ -599,11 +599,11 @@ export function listenFriendRequests(callback) {
   _teardown('friendRequests')
   const q = query(
     collection(db, 'friendRequests'),
-    where('to', '==', uid),
+    where('to', '==', uid)
   )
   const unsub = onSnapshot(q, async (snap) => {
     const requests = []
-    for (const d of snap.docs) {
+    for (const d of snap.docs.filter(d => d.data().status === 'pending')) {
       const data = d.data()
       let fromProfile = {}
       try {
