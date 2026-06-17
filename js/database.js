@@ -600,7 +600,6 @@ export function listenFriendRequests(callback) {
   const q = query(
     collection(db, 'friendRequests'),
     where('to', '==', uid),
-    where('status', '==', 'pending')
   )
   const unsub = onSnapshot(q, async (snap) => {
     const requests = []
