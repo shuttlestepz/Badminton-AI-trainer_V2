@@ -57,7 +57,15 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 .btn-logout{width:100%;display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;background:none;border:1px solid var(--border);color:var(--text2);font-family:'Sora',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;transition:all var(--trans)}
 .btn-logout:hover{border-color:var(--danger);color:var(--danger)}
 .sidebar-overlay{position:fixed;inset:0;top:var(--topbar-h);background:rgba(0,0,0,.6);z-index:240;opacity:0;pointer-events:none;transition:opacity .28s}
-.sidebar-overlay.open{opacity:1;pointer-events:auto}
+/* Add this to make sidebar always visible on large screens */
+@media(min-width:641px){
+  .sidebar {
+    transform: translateX(0);
+  }
+  #drawer-overlay {
+    display: none; /* hide overlay on large screens */
+  }
+}
 
 /* AUTH GATE */
 #auth-gate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:var(--bg);z-index:999;text-align:center;padding:40px}
@@ -194,7 +202,7 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 .disc-panel{display:none;flex:1;flex-direction:column;overflow:hidden}
 .disc-panel.active{display:flex}
 .disc-search{padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative}
-.disc-search input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:24px;padding:9px 12px 9px 34px;color:var(--text);font-family:'Sora',sans-serif;font-size:13px;outline:none;transition:border-color var(--trans)}
+.disc-search input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:24px;padding:9px 12px; color:var(--text);font-family:'Sora',sans-serif;font-size:13px;outline:none;transition:border-color var(--trans)}
 .disc-search input:focus{border-color:rgba(57,224,122,.4)}
 .disc-search input::placeholder{color:var(--text3)}
 .disc-search svg{position:absolute;left:24px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
@@ -285,6 +293,7 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 .spin{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* Responsive adjustments for smaller screens */
 @media(max-width:1000px){
   /* Hide discover sidebar on smaller screens */
   .discover-col {
@@ -337,6 +346,16 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
   /* Optional: hide discover panel or keep it as overlay if needed */
   .discover-col {
     display: none;
+  }
+}
+
+/* Add this to make sidebar always visible on large screens */
+@media(min-width:641px){
+  .sidebar {
+    transform: translateX(0);
+  }
+  #drawer-overlay {
+    display: none; /* hide overlay on large screens */
   }
 }
 </style>
