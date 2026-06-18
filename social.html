@@ -89,7 +89,7 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 .t-info{flex:1;min-width:0}
 .t-name{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .t-preview{font-size:12px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.t-time{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;flex-shrink:0}
+.t-time{font-size:10px;font-family:'DM Mono',monospace;flex-shrink:0}
 .empty-threads{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text2);font-size:13px;text-align:center;padding:32px}
 .empty-threads .ei{font-size:40px;opacity:.35}
 
@@ -270,7 +270,6 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 
 /* Context menu */
 .ctx-menu{position:fixed;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:4px;z-index:600;min-width:160px;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none}
-.ctx-menu.show{display:block}
 .ctx-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--text2);transition:all var(--trans)}
 .ctx-item:hover{background:var(--bg3);color:var(--text)}
 .ctx-item.danger{color:var(--danger)}
@@ -286,8 +285,60 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 .spin{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-@media(max-width:1000px){.discover-col{display:none}.chat-window{right:0}}
-@media(max-width:640px){.chat-list-col{width:100%;display:none}.chat-list-col.mob{display:flex}.chat-window{left:0;right:0}}
+@media(max-width:1000px){
+  /* Hide discover sidebar on smaller screens */
+  .discover-col {
+    display: none;
+  }
+  /* Chat window full width on medium screens */
+  .chat-window {
+    right: 0;
+  }
+}
+
+@media(max-width:640px){
+  /* Make chat list full width and overlayed */
+  .chat-list-col {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 100%;
+    height: calc(100% - var(--topbar-h));
+    z-index: 200;
+    transform: translateX(0);
+    transition: transform 0.3s ease;
+  }
+  /* Make chat window occupy full screen */
+  .chat-window {
+    position: absolute;
+    top: var(--topbar-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: calc(100% - var(--topbar-h));
+  }
+  /* Sidebar as overlay menu */
+  .sidebar {
+    width: 80%;
+    max-width: 300px;
+    height: 100%;
+    top: 0;
+    left: 0;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 300;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  /* Optional: hide discover panel or keep it as overlay if needed */
+  .discover-col {
+    display: none;
+  }
+}
 </style>
 </head>
 <body>
