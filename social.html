@@ -60,7 +60,7 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 /* Add this to make sidebar always visible on large screens */
 @media(min-width:641px){
   .sidebar {
-    transform: translateX(0);
+    transform: translateX(-100%);
   }
   #drawer-overlay {
     display: none; /* hide overlay on large screens */
@@ -102,7 +102,7 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 .empty-threads .ei{font-size:40px;opacity:.35}
 
 /* ═══ CENTER — Chat window ═══ */
-.chat-window{position:absolute;top:0;left:300px;right:340px;bottom:0;display:flex;flex-direction:column;background:var(--bg)}
+.chat-window{position:absolute;top:0;left:300px;right:340px;bottom:0;display:flex;flex-direction:column;background:var(--bg);transition:transform 0.3s ease}
 .chat-topbar{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--bg2);flex-shrink:0;cursor:pointer;transition:background var(--trans)}
 .chat-topbar:hover .chat-topbar-inner{opacity:.85}
 .chat-topbar-inner{flex:1;min-width:0}
@@ -321,14 +321,16 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
   }
   /* Make chat window occupy full screen */
   .chat-window {
-    position: absolute;
-    top: var(--topbar-h);
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: calc(100% - var(--topbar-h));
-  }
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
   /* Sidebar as overlay menu */
   .sidebar {
     width: 80%;
@@ -350,14 +352,7 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 }
 
 /* Add this to make sidebar always visible on large screens */
-@media(min-width:641px){
-  .sidebar {
-    transform: translateX(0);
-  }
-  #drawer-overlay {
-    display: none; /* hide overlay on large screens */
-  }
-}
+
 </style>
 </head>
 <body>
@@ -586,6 +581,12 @@ let myUID=null, myProfile=null, activeChat=null, activeChatProfile=null
 let chatUnsub=null, allFriends=[], replyTo=null, ctxMsgId=null, ctxMsgMine=false
 
 window.doLogout=async()=>{try{await logoutUser()}catch(e){}window.location.href='/Badminton-AI-trainer_V2/login.html'}
+window.goBackToList=()=>{
+  if(window.innerWidth<=640){
+    document.querySelector('.chat-list-col').style.transform='translateX(0)'
+    document.querySelector('.chat-window').style.transform='translateX(100%)'
+  }
+}
 
 const XP_T=[0,500,1200,2200,3500,5200,7200,9800,13000,17000,22000]
 function renderXP(xp,lv){
@@ -624,17 +625,18 @@ $('thread-search').addEventListener('input',()=>{if(window._lastChats)renderThre
 
 /* ── Open chat ── */
 function openChat(uid,profile){
-  // Make sure the chat window is visible
-  const chatWin = document.getElementById('chat-window');
-  if (chatWin) {
-    chatWin.style.display = 'flex'; // or 'block' based on your CSS
+  // On mobile, hide chat list and show chat window
+  if(window.innerWidth<=640){
+    document.querySelector('.chat-list-col').style.transform='translateX(-100%)'
+    document.querySelector('.chat-window').style.transform='translateX(0)'
   }
 
   activeChat=uid;activeChatProfile=profile
   document.querySelectorAll('.thread-item').forEach(t=>t.classList.toggle('active',t.dataset.uid===uid))
   const win=$('chat-window'),name=profile?.displayName||'Player'
   win.innerHTML=`
-    <div class="chat-topbar" onclick="openProfileModal('${uid}')">
+    <div class="chat-topbar">
+        <button id="back-btn" style="display:none;background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 8px 0 0" onclick="window.goBackToList()">←</button>
       ${mkAv(profile,38)}
       <div class="chat-topbar-inner">
         <div class="chat-topbar-name">${name}</div>
@@ -652,6 +654,7 @@ function openChat(uid,profile){
 
   if(chatUnsub) chatUnsub()
   chatUnsub = listenChat(uid, renderMessages)
+  if(window.innerWidth<=640){const bb=document.getElementById('back-btn');if(bb)bb.style.display='block'}
 
   const input=$('chat-input'), btn=$('send-btn')
 
@@ -688,6 +691,7 @@ function openChat(uid,profile){
   })
 
   // GIF search
+// GIF search
   const gifInput=$('gif-search-input');
   if(gifInput){
     let gifTimer=null;
@@ -697,6 +701,218 @@ function openChat(uid,profile){
     });
   }
 }
+
+window.togglePicker=function(type){
+  const ep=$('emoji-picker'),gp=$('gif-picker')
+  if(type==='emoji'){ep.classList.toggle('show');gp.classList.remove('show')}
+  else{gp.classList.toggle('show');ep.classList.remove('show')}
+}
+
+async function searchGifs(q,chatUID){
+  const grid=$('gif-grid');if(!grid)return
+  if(!q){grid.innerHTML=`<div style="color:var(--text3);font-size:11px;text-align:center;padding:20px;grid-column:1/-1">Type to search GIFs</div>`;return}
+  grid.innerHTML=`<div style="color:var(--text3);font-size:11px;text-align:center;padding:20px;grid-column:1/-1"><div class="spin" style="display:inline-block"></div></div>`
+  try{
+    const r=await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q)}&key=AIzaSyAyimkuYQYF_FXVql3cv-Kfi_P3P1J0fE&limit=6&media_filter=gif`)
+    const data=await r.json()
+    if(!data.results?.length){grid.innerHTML=`<div style="color:var(--text3);font-size:11px;text-align:center;padding:20px;grid-column:1/-1">No GIFs found</div>`;return}
+    grid.innerHTML=data.results.map(g=>`<div class="gif-thumb" data-url="${g.media_formats?.gif?.url||''}"><img src="${g.media_formats?.tinygif?.url||g.media_formats?.gif?.url||''}" loading="lazy"/></div>`).join('')
+    grid.querySelectorAll('.gif-thumb').forEach(thumb=>{
+      thumb.addEventListener('click',async()=>{
+        const url=thumb.dataset.url
+        $('gif-picker').classList.remove('show')
+        try{await sendMessage(chatUID,'[GIF]'+url)}catch(e){toast('Failed to send GIF','err')}
+      })
+    })
+  }catch(e){grid.innerHTML=`<div style="color:var(--text3);font-size:11px;text-align:center;padding:20px;grid-column:1/-1">GIF search unavailable</div>`}
+}
+
+function renderMessages(msgs){
+  const wrap=$('messages');if(!wrap)return
+  if(!msgs.length){wrap.innerHTML=`<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">Say hi! 👋</div>`;return}
+  let html='',lastDay=''
+  msgs.forEach(m=>{
+    const mine=m.from===myUID
+    const theirName=(mine?'You':(activeChatProfile?.displayName||'Them')).replace(/'/g,"\\'")
+    const ts=m.createdAt?.toDate?m.createdAt.toDate():new Date()
+    const day=ts.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})
+    if(day!==lastDay){html+=`<div class="date-sep">${day}</div>`;lastDay=day}
+    const isGif=m.text?.startsWith('[GIF]')
+    const gifUrl=isGif?m.text.replace('[GIF]',''):null
+    const displayText=isGif?'':`${m.text}`
+    const replyHtml=m.replyTo?`<div class="reply-quote"><div class="rq-name">${m.replyTo.fromName||'Reply'}</div>${m.replyTo.text||''}</div>`:``
+    html+=`
+    <div class="msg-wrap ${mine?'mine':''}" data-id="${m.id}" data-mine="${mine}" data-text="${(m.text||'').replace(/"/g,'&quot;')}">
+      <div class="msg-actions">
+        <button class="ma-btn" title="React" onclick="quickReact('${m.id}','❤️')">❤️</button>
+        <button class="ma-btn" title="Reply" onclick="setReply('${m.id}','${(m.text||'').replace(/'/g,"\\'")}','${theirName}')">↩️</button>
+        <button class="ma-btn" title="More" onclick="showCtx(event,'${m.id}',${mine})">⋯</button>
+      </div>
+      <div class="msg-row ${mine?'mine':''}">
+        <div class="bubble-col">
+          ${replyHtml}
+          <div class="bubble">
+            ${gifUrl?`<img class="gif-img" src="${gifUrl}" alt="GIF" onclick="window.open('${gifUrl}','_blank')"/>`:''}
+            ${displayText}
+          </div>
+          <div class="msg-ts">${fmtT(m.createdAt)}</div>
+        </div>
+      </div>
+    </div>`
+  })
+  wrap.innerHTML=html
+  wrap.scrollTop=wrap.scrollHeight
+}
+
+function setReply(id,text,name){
+  replyTo={id,text,fromName:name}
+  const rb=$('reply-banner');if(!rb)return
+  rb.classList.add('show')
+  tx('rb-name',name);tx('rb-text',text.length>60?text.slice(0,60)+'…':text)
+  $('chat-input')?.focus()
+}
+function cancelReply(){replyTo=null;const rb=$('reply-banner');if(rb)rb.classList.remove('show')}
+window.setReply=setReply;window.cancelReply=cancelReply
+
+function quickReact(msgId,emoji){toast(emoji+' Reaction added!')}
+window.quickReact=quickReact
+
+function showCtx(e,msgId,mine){
+  e.stopPropagation();ctxMsgId=msgId;ctxMsgMine=mine
+  const menu=$('ctx-menu')
+  menu.style.top=(e.clientY+5)+'px';menu.style.left=Math.min(e.clientX,window.innerWidth-180)+'px'
+  menu.classList.add('show')
+}
+window.showCtx=showCtx
+
+$('ctx-reply').addEventListener('click',()=>{
+  const el=document.querySelector(`[data-id="${ctxMsgId}"]`)
+  if(el)setReply(ctxMsgId,el.dataset.text||'',ctxMsgMine?'You':(activeChatProfile?.displayName||'Them'))
+  $('ctx-menu').classList.remove('show')
+})
+$('ctx-forward').addEventListener('click',()=>{toast('Forward coming soon');$('ctx-menu').classList.remove('show')})
+$('ctx-tag').addEventListener('click',()=>{const ci=$('chat-input');if(ci)ci.value+='@'+(activeChatProfile?.displayName||'player')+' ';$('ctx-menu').classList.remove('show')})
+$('ctx-delete').addEventListener('click',async()=>{
+  $('ctx-menu').classList.remove('show')
+  if(!ctxMsgMine){toast('Can only delete your own messages','err');return}
+  if(!confirm('Delete this message?'))return
+  try{
+    await deleteSession(ctxMsgId).catch(()=>{})
+    const el=document.querySelector(`[data-id="${ctxMsgId}"]`)
+    if(el){el.querySelector('.bubble').textContent='🗑️ Message deleted';el.querySelector('.bubble').style.opacity='.5'}
+    toast('Message deleted')
+  }catch(e){toast('Delete failed','err')}
+})
+$('ctx-report').addEventListener('click',()=>{$('ctx-menu').classList.remove('show');toast('Message reported 🚩')})
+
+async function openProfileModal(uid){
+  const modal=$('profile-modal');modal.classList.add('show')
+  const pmAv=$('pm-av')
+  tx('pm-name','Loading…');tx('pm-role','');tx('pm-xp','')
+  $('pm-sessions-list').innerHTML=`<div class="loader"><div class="spin"></div> Loading…</div>`
+  $('pm-actions').innerHTML=''
+  try{
+    const prof=await getUserProfile(uid),p=prof.profile||{}
+    const name=p.displayName||'Player',role=p.role||'student'
+    tx('pm-name',name);tx('pm-role',role.charAt(0).toUpperCase()+role.slice(1))
+    tx('pm-xp',fmtXP(prof.xp||0)+' · Lv '+(prof.level||1))
+    if(p.avatarURL){pmAv.style.backgroundImage=`url(${p.avatarURL})`;pmAv.style.backgroundSize='cover';pmAv.style.backgroundPosition='center';pmAv.textContent=''}
+    else{pmAv.style.backgroundImage='';pmAv.textContent=ini(name)}
+    const sessions=await getSessions({uid,limitN:20})
+    tx('pm-sessions',sessions.length)
+    tx('pm-streak',sessions.reduce((a,s)=>Math.max(a,s.bestStreak||0),0)+'🔥')
+    const avg=sessions.length?Math.round(sessions.reduce((a,s)=>a+(s.score||0),0)/sessions.length):0
+    tx('pm-avg',sessions.length?avg:'—')
+    $('pm-sessions-list').innerHTML=sessions.length?sessions.slice(0,8).map(s=>`<div class="pm-session-row"><div class="pm-s-drill">${(s.drill||'Footwork').replace(/^\w/,c=>c.toUpperCase())} Drill</div><div class="pm-s-right"><div class="pm-s-score">${s.score||0} pts</div><div class="pm-s-acc">${s.accuracy!=null?s.accuracy+'%':'—'}</div></div></div>`).join(''):`<div style="text-align:center;color:var(--text3);font-size:12px;padding:10px 0">No sessions yet</div>`
+    const status=await getFriendshipStatus(uid)
+    let actionHtml=`<button class="pm-btn pm-btn-chat" onclick="document.getElementById('profile-modal').classList.remove('show');openChatFromModal('${uid}')">💬 Message</button>`
+    if(status==='friends')actionHtml+=`<button class="pm-btn pm-btn-add" style="color:var(--text2);border-color:var(--text2);pointer-events:none">✓ Friends</button>`
+    else if(status==='pending_sent')actionHtml+=`<button class="pm-btn pm-btn-add" style="pointer-events:none">Sent ✓</button>`
+    else actionHtml+=`<button class="pm-btn pm-btn-add" onclick="addFriendFromModal('${uid}')">+ Add Friend</button>`
+    $('pm-actions').innerHTML=actionHtml
+  }catch(e){tx('pm-name','Error loading');console.error(e)}
+}
+window.openProfileModal=openProfileModal
+
+async function openChatFromModal(uid){openChat(uid,allFriends.find(f=>f.uid===uid)||{uid})}
+window.openChatFromModal=openChatFromModal
+
+async function addFriendFromModal(uid){
+  try{await sendFriendRequest(uid);toast('Friend request sent! 🏸');document.getElementById('profile-modal').classList.remove('show')}
+  catch(e){toast(e.message,'err')}
+}
+window.addFriendFromModal=addFriendFromModal
+
+function renderFriendsList(friends){
+  allFriends=friends
+  tx('friend-count-pill',friends.length+' Friend'+(friends.length!==1?'s':''))
+  $('topbar-pill').style.display=friends.length?'flex':'none'
+  const el=$('friends-list')
+  if(!friends.length){el.innerHTML=`<div style="text-align:center;padding:40px 16px;color:var(--text3);font-size:13px">No friends yet 🏸</div>`;return}
+  el.innerHTML=friends.map(f=>`<div class="player-card"><div class="pc-top">${mkAv(f,42)}<div class="pc-info"><div class="pc-name">${f.displayName||'Player'}</div><div class="pc-meta">${f.username?'@'+f.username:''}</div><div class="pc-lv">${fmtXP(f.xp||0)} · Lv ${f.level||1}</div></div><button class="follow-btn" data-uid="${f.uid}">💬 Chat</button></div></div>`).join('')
+  el.querySelectorAll('.follow-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{const uid=btn.dataset.uid;openChat(uid,friends.find(f=>f.uid===uid));switchDisc('find',document.querySelector('.disc-tab'))})
+  })
+}
+
+function renderRequests(reqs){
+  const badge=$('req-badge')
+  if(reqs.length){badge.style.display='inline-flex';badge.textContent=reqs.length}else{badge.style.display='none'}
+  const el=$('requests-list')
+  if(!reqs.length){el.innerHTML=`<div style="text-align:center;padding:40px 16px;color:var(--text3);font-size:13px">No pending requests</div>`;return}
+  el.innerHTML=reqs.map(r=>`<div class="req-item">${mkAv(r.fromProfile,42)}<div class="pc-info" style="flex:1;min-width:0"><div class="pc-name">${r.fromProfile?.displayName||'Player'}</div><div class="pc-meta" style="font-size:11px;color:var(--text3)">wants to be friends</div></div><div class="req-actions"><button class="req-accept" data-rid="${r.id}">✓</button><button class="req-decline" data-rid="${r.id}">✕</button></div></div>`).join('')
+  el.querySelectorAll('.req-accept').forEach(btn=>btn.addEventListener('click',async()=>{try{await respondToFriendRequest(btn.dataset.rid,true);toast('Friend added! 🏸')}catch(e){toast(e.message,'err')}}))
+  el.querySelectorAll('.req-decline').forEach(btn=>btn.addEventListener('click',async()=>{try{await respondToFriendRequest(btn.dataset.rid,false);toast('Request declined')}catch(e){toast(e.message,'err')}}))
+}
+
+let sTimer=null
+$('player-search').addEventListener('input',e=>{
+  clearTimeout(sTimer);const q=e.target.value.trim()
+  if(!q){$('search-results').innerHTML=`<div style="text-align:center;padding:40px 16px;color:var(--text3);font-size:13px">🔍 Search to find players</div>`;return}
+  sTimer=setTimeout(()=>doSearch(q),350)
+})
+
+async function doSearch(q){
+  const el=$('search-results')
+  el.innerHTML=`<div class="loader"><div class="spin"></div> Searching…</div>`
+  try{
+    const results=await searchUsersByUsername(q)
+    if(!results.length){el.innerHTML=`<div style="text-align:center;padding:40px 16px;color:var(--text3);font-size:13px">No players found</div>`;return}
+    const withStatus=await Promise.all(results.map(async u=>({...u,status:await getFriendshipStatus(u.uid)})))
+    const withSessions=await Promise.all(withStatus.map(async u=>{try{const s=await getSessions({uid:u.uid,limitN:3});return{...u,sessions:s}}catch(e){return{...u,sessions:[]}}}))
+    el.innerHTML=withSessions.map(u=>{
+      let btn=''
+      if(u.status==='friends')btn=`<button class="follow-btn friends-tag">✓ Friends</button>`
+      else if(u.status==='pending_sent')btn=`<button class="follow-btn sent">Sent ✓</button>`
+      else if(u.status==='pending_received')btn=`<button class="follow-btn" style="border-color:#f97316;color:#f97316" data-uid="${u.uid}">Accept</button>`
+      else btn=`<button class="follow-btn" data-uid="${u.uid}">+ Add</button>`
+      const sessHtml=u.sessions.length?u.sessions.map(s=>`<div class="pc-session-row"><div class="pc-s-drill">${(s.drill||'Footwork').replace(/^\w/,c=>c.toUpperCase())}</div><div class="pc-s-score">${s.score||0} pts</div><div class="pc-s-acc">${s.accuracy!=null?s.accuracy+'%':'—'}</div></div>`).join(''):`<div class="pc-sessions-empty">No sessions yet</div>`
+      return`<div class="player-card"><div class="pc-top">${mkAv(u,42)}<div class="pc-info"><div class="pc-name">${u.displayName||'Player'}</div><div class="pc-meta">${u.username?'@'+u.username:''}</div><div class="pc-lv">${fmtXP(u.xp||0)} · Lv ${u.level||1}</div></div>${btn}</div><div class="pc-sessions"><div class="pc-sessions-title">Recent Sessions</div>${sessHtml}</div></div>`
+    }).join('')
+    el.querySelectorAll('.follow-btn[data-uid]').forEach(btn=>{
+      btn.addEventListener('click',async()=>{const uid=btn.dataset.uid;try{await sendFriendRequest(uid);btn.textContent='Sent ✓';btn.classList.add('sent');toast('Request sent! 🏸')}catch(e){toast(e.message,'err')}})
+    })
+  }catch(e){el.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">Error: ${e.message}</div>`}
+}
+
+onAuthReady(async(user)=>{
+  if(!user){$('auth-gate').style.display='flex';$('social-shell').style.display='none';return}
+  myUID=user.uid
+  $('auth-gate').style.display='none'
+  $('social-shell').style.display='block'
+  try{
+    myProfile=await getUserProfile(user.uid)
+    const p=myProfile.profile||{},role=p.role||'student'
+    tx('role-badge',role.charAt(0).toUpperCase()+role.slice(1))
+    renderXP(myProfile.xp||0,myProfile.level||1)
+    listenUserProfile(d=>renderXP(d.xp||0,d.level||1))
+    const nm=$('nav-manage')
+    if(nm&&(role==='teacher'||role==='coach')){nm.style.display='flex';tx('nav-manage-label',role==='coach'?'Athletes':'Students')}
+  }catch(e){console.warn(e)}
+  listenFriends(renderFriendsList)
+  listenFriendRequests(renderRequests)
+  listenMyChats(chats=>{window._lastChats=chats;renderThreads(chats)})
+})
 </script>
 </body>
 </html>
