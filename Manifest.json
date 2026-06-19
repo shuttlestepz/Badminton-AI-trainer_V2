@@ -1,0 +1,28 @@
+{
+  "name": "Shuttlestepz - AI Badminton Trainer",
+  "short_name": "Shuttlestepz",
+  "description": "AI-powered badminton training app. Smash limits. Step beyond.",
+  "start_url": "/Badminton-AI-trainer_V2/",
+  "scope": "/Badminton-AI-trainer_V2/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00e5ff",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "health", "fitness"],
+  "screenshots": [],
+  "lang": "en"
+}
