@@ -522,7 +522,7 @@ export default {
   unsubscribeAll, unsubscribe, resetUserData, saveAITips, getAITips, deleteUserData,
   searchUsersByUsername, sendFriendRequest, respondToFriendRequest,
   listenFriendRequests, listenFriends, getFriendshipStatus,
-  sendMessage, listenChat, listenMyChats,
+  sendMessage, listenChat, listenMyChats, clearChat, deleteChat,
 }
 
 /* ═══════════════════════════════════════════════════════════════
