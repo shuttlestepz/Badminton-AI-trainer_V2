@@ -736,3 +736,26 @@ export function listenMyChats(callback) {
   _unsubscribers['myChats'] = unsub
   return unsub
 }
+export async function clearChat(otherUID) {
+  const me = auth.currentUser;
+  if (!me) throw new Error('Not signed in');
+  const chatId = [me.uid, otherUID].sort().join('_');
+  const msgsRef = collection(db, 'chats', chatId, 'messages');
+  const snap = await getDocs(msgsRef);
+  const batch = writeBatch(db);
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+}
+
+export async function deleteChat(otherUID) {
+  const me = auth.currentUser;
+  if (!me) throw new Error('Not signed in');
+  const chatId = [me.uid, otherUID].sort().join('_');
+  const msgsRef = collection(db, 'chats', chatId, 'messages');
+  const snap = await getDocs(msgsRef);
+  const batch = writeBatch(db);
+  snap.docs.forEach(d => batch.delete(d.ref));
+  batch.delete(doc(db, 'users', me.uid, 'chats', otherUID));
+  batch.delete(doc(db, 'users', otherUID, 'chats', me.uid));
+  await batch.commit();
+}
