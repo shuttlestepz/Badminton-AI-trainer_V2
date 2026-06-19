@@ -479,7 +479,7 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
   <div class="gif-grid" id="gif-grid"><div style="color:var(--text3);font-size:11px;text-align:center;padding:20px;grid-column:1/-1">Type to search GIFs</div></div>
 </div>
 
-<!-- TOAST -->
+<div class="thread-ctx-menu" id="thread-ctx-menu"><div class="thread-ctx-item" id="tctx-clear">🧹 Clear Chat</div><div class="thread-ctx-sep"></div><div class="thread-ctx-item danger" id="tctx-delete">🗑️ Delete Chat</div></div><!-- TOAST -->
 <div id="toast"><span class="td">●</span><span id="toast-msg"></span></div>
 
 <script>
@@ -498,7 +498,7 @@ function closeProfileModal(e){if(e.target===document.getElementById('profile-mod
 document.addEventListener('click',e=>{
   if(!e.target.closest('#emoji-picker')&&!e.target.closest('.emoji-toggle'))document.getElementById('emoji-picker').classList.remove('show');
   if(!e.target.closest('#gif-picker')&&!e.target.closest('.gif-toggle'))document.getElementById('gif-picker').classList.remove('show');
-  if(!e.target.closest('#ctx-menu'))document.getElementById('ctx-menu').classList.remove('show');
+  if(!e.target.closest('#ctx-menu'))document.getElementById('ctx-menu').classList.remove('show');if(!e.target.closest('#thread-ctx-menu'))document.getElementById('thread-ctx-menu').classList.remove('show');
 });
 </script>
 
@@ -507,7 +507,7 @@ import {
   onAuthReady, getUserProfile, logoutUser, listenUserProfile,
   listenFriends, listenFriendRequests, sendFriendRequest, respondToFriendRequest,
   searchUsersByUsername, getFriendshipStatus,
-  sendMessage, listenChat, listenMyChats, getSessions, deleteSession,
+  sendMessage, listenChat, listenMyChats, getSessions, deleteSession, clearChat, deleteChat,
 } from '/Badminton-AI-trainer_V2/js/database.js'
 
 const tx=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v}
@@ -561,7 +561,8 @@ function renderThreads(chats){
     </div>`
   }).join('')
   el.querySelectorAll('.thread-item').forEach(item=>{
-    item.addEventListener('click',()=>{
+    item.addEventListener('contextmenu',e=>showThreadCtx(e,item.dataset.uid))
+      item.addEventListener('click',()=>{
       const uid=item.dataset.uid,chat=chats.find(c=>c.otherUid===uid)
       openChat(uid,chat?.profile)
     })
@@ -579,7 +580,7 @@ function openChat(uid,profile){
       ${mkAv(profile,38)}
       <div class="chat-topbar-inner">
         <div class="chat-topbar-name">${name}</div>
-        <div class="chat-topbar-sub">${fmtXP(profile?.xp||0)} · Lv ${profile?.level||1} · Tap for profile</div>
+        <div class="chat-topbar-sub">${fmtXP(profile?.xp||0)} · Lv ${profile?.level||1} · Tap for profile</div></div><div style="display:flex;gap:6px"><button class="icon-btn" id="chat-more-btn" onclick="event.stopPropagation();showChatMenu(event,'${uid}')" title="More">⋮</button>
       </div>
     </div>
     <div class="messages-area" id="messages"></div>
@@ -724,6 +725,14 @@ function showCtx(e,msgId,mine){
   menu.classList.add('show')
 }
 window.showCtx=showCtx
+
+let threadCtxUID=null
+function showThreadCtx(e,uid){e.preventDefault();e.stopPropagation();threadCtxUID=uid;const m=document.getElementById('thread-ctx-menu');m.style.top=Math.min(e.clientY,window.innerHeight-100)+'px';m.style.left=Math.min(e.clientX,window.innerWidth-200)+'px';m.classList.add('show')}
+window.showThreadCtx=showThreadCtx
+function showChatMenu(e,uid){threadCtxUID=uid;const m=document.getElementById('thread-ctx-menu');m.style.top=(e.clientY+10)+'px';m.style.left=Math.min(e.clientX,window.innerWidth-200)+'px';m.classList.add('show')}
+window.showChatMenu=showChatMenu
+document.getElementById('tctx-clear').addEventListener('click',async()=>{document.getElementById('thread-ctx-menu').classList.remove('show');if(!threadCtxUID)return;if(!confirm('Clear all messages?'))return;try{await clearChat(threadCtxUID);const w=document.getElementById('messages');if(w)w.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">Say hi! 👋</div>';toast('Chat cleared')}catch(e){toast('Failed','err')}})
+document.getElementById('tctx-delete').addEventListener('click',async()=>{document.getElementById('thread-ctx-menu').classList.remove('show');if(!threadCtxUID)return;if(!confirm('Delete this conversation?'))return;try{await deleteChat(threadCtxUID);if(activeChat===threadCtxUID){activeChat=null;document.getElementById('chat-window').innerHTML='<div class="chat-empty"><div class="chat-empty-icon">🏸</div><h3>Select a chat</h3></div>'}toast('Chat deleted')}catch(e){toast('Failed','err')}})
 
 $('ctx-reply').addEventListener('click',()=>{
   const el=document.querySelector(`[data-id="${ctxMsgId}"]`)
