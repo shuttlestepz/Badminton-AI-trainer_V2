@@ -673,7 +673,7 @@ function renderMessages(msgs){
     <div class="msg-wrap ${mine?'mine':''}" data-id="${m.id}" data-mine="${mine}" data-text="${(m.text||'').replace(/"/g,'&quot;')}">
       <div class="msg-actions">
         <button class="ma-btn" title="React" onclick="quickReact('${m.id}','❤️')">❤️</button>
-        <button class="ma-btn" title="Reply" onclick="setReply('${m.id}','${(m.text||'').replace(/'/g,'\\'')}','${mine?'You':(activeChatProfile?.displayName||'Them')}')">↩️</button>
+        <button class="ma-btn" title="Reply" data-id="${m.id}" data-text="${(m.text||'').replace(/"/g,'&quot;')}" data-name="${mine?'You':(activeChatProfile?.displayName||'Them').replace(/"/g,'&quot;')}" onclick="setReply(this.dataset.id,this.dataset.text,this.dataset.name)">↩️</button>
         <button class="ma-btn" title="More" onclick="showCtx(event,'${m.id}',${mine})">⋯</button>
       </div>
       <div class="msg-row ${mine?'mine':''}">
