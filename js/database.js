@@ -492,6 +492,23 @@ export async function deleteUserData(uid) {
   // Delete leaderboard entry
   await deleteDoc(doc(db, 'leaderboard', uid)).catch(() => {})
 
+  // Remove from all friends' lists
+  const myFriendsSnap = await getDocs(collection(db, 'friends', uid, 'list'))
+  for (const d of myFriendsSnap.docs) {
+    const friendUid = d.id
+    await deleteDoc(doc(db, 'friends', friendUid, 'list', uid)).catch(() => {})
+    await deleteDoc(doc(db, 'friends', uid, 'list', friendUid)).catch(() => {})
+  }
+
+  // Remove pending friend requests involving this user
+  const sentQ = query(collection(db, 'friendRequests'), where('from', '==', uid))
+  const recvQ = query(collection(db, 'friendRequests'), where('to', '==', uid))
+  const [sentSnap, recvSnap] = await Promise.all([getDocs(sentQ), getDocs(recvQ)])
+  await Promise.all([
+    ...sentSnap.docs.map(d => deleteDoc(d.ref)),
+    ...recvSnap.docs.map(d => deleteDoc(d.ref)),
+  ])
+
   // Delete user document
   await deleteDoc(doc(db, 'users', uid))
 }
