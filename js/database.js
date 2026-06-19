@@ -772,7 +772,6 @@ export async function deleteChat(otherUID) {
   const snap = await getDocs(msgsRef);
   const batch = writeBatch(db);
   snap.docs.forEach(d => batch.delete(d.ref));
-  batch.delete(doc(db, 'users', me.uid, 'chats', otherUID));
-  batch.delete(doc(db, 'users', otherUID, 'chats', me.uid));
+  batch.delete(doc(db, 'chats', chatId));
   await batch.commit();
 }
