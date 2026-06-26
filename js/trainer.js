@@ -152,7 +152,7 @@ const TM_INTERVAL_MS = 150    // run TM inference every ~150ms (don't block Move
  * Called after camera starts, if chk-footwork is checked.
  */
 async function loadTMModel() {
-  const modelPath = (document.getElementById('fw-model-path')?.value || './model/footwork/').trim()
+  const modelPath = './model/'
   const modelURL    = modelPath.endsWith('/') ? modelPath + 'model.json'    : modelPath + '/model.json'
   const metadataURL = modelPath.endsWith('/') ? modelPath + 'metadata.json' : modelPath + '/metadata.json'
 
