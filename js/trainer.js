@@ -7,6 +7,7 @@ function safeLocalStorage(action, key, value) {
 /* ============================================================
    Shuttlestepz — trainer.js
    AI Footwork Trainer Logic (auth-aware)
+   + Teachable Machine footwork classification layer
    ============================================================ */
 
 // Guard: only run on trainer page
@@ -29,6 +30,7 @@ const pdots      = document.getElementById('pdots')
 const modelStatus= document.getElementById('model-status')
 const speedBar   = document.getElementById('speed-bar')
 const speedVal   = document.getElementById('speed-val')
+const fwBadge    = document.getElementById('fw-badge')
 
 const setupScreen  = document.getElementById('screen-setup')
 const resultScreen = document.getElementById('screen-results')
@@ -38,6 +40,7 @@ const slRounds = document.getElementById('sl-rounds')
 const slTime   = document.getElementById('sl-time')
 const chkVoice = document.getElementById('chk-voice')
 const chkBeep  = document.getElementById('chk-beep')
+const chkFootwork = document.getElementById('chk-footwork')
 
 slRounds.oninput = () => document.getElementById('lbl-rounds').textContent = slRounds.value
 slTime.oninput   = () => document.getElementById('lbl-time').textContent   = slTime.value + 's'
@@ -132,6 +135,142 @@ let centerX=null, centerY=null, frameW=640, frameH=480
 let hipX=null, hipY=null, feetX=null, feetY=null
 let calibrated=false, calibFrames=0, calibSumX=0, calibSumY=0
 const CALIB_FRAMES = 25
+
+// ════════════════════════════════════════════════════════════════
+// ── TEACHABLE MACHINE FOOTWORK LAYER ────────────────────────────
+// ════════════════════════════════════════════════════════════════
+let tmModel          = null   // loaded tmPose model
+let tmEnabled        = false  // user toggled it on
+let tmReady          = false  // model loaded successfully
+let tmLoopRunning    = false
+let tmLoopId         = null
+const TM_CONFIDENCE  = 0.75   // minimum confidence to display label
+const TM_INTERVAL_MS = 150    // run TM inference every ~150ms (don't block MoveNet)
+
+/**
+ * Load Teachable Machine pose model from local path.
+ * Called after camera starts, if chk-footwork is checked.
+ */
+async function loadTMModel() {
+  const modelPath = (document.getElementById('fw-model-path')?.value || './model/footwork/').trim()
+  const modelURL    = modelPath.endsWith('/') ? modelPath + 'model.json'    : modelPath + '/model.json'
+  const metadataURL = modelPath.endsWith('/') ? modelPath + 'metadata.json' : modelPath + '/metadata.json'
+
+  try {
+    modelStatus.textContent = 'Loading footwork model… ⏳'
+    // tmPose is injected by the @teachablemachine/pose CDN script
+    tmModel = await window.tmPose.load(modelURL, metadataURL)
+    tmReady = true
+
+    // Build sidebar class list
+    buildFWSidebarList()
+    const fwCard = document.getElementById('fw-sidebar-card')
+    if (fwCard) fwCard.style.display = 'block'
+    if (fwBadge) fwBadge.style.display = 'block'
+
+    modelStatus.className = 'ok'
+    modelStatus.textContent = 'AI + Footwork ready ✓'
+    console.log('✅ TM footwork model loaded — classes:', tmModel.getTotalClasses())
+  } catch (err) {
+    console.warn('[TM] model load failed:', err.message)
+    modelStatus.className = 'err'
+    modelStatus.textContent = '⚠ Footwork model not found — zone tracking only'
+    tmReady = false
+    // Non-fatal: app continues without footwork classification
+  }
+}
+
+/**
+ * Build the sidebar class confidence bars dynamically from model metadata.
+ */
+function buildFWSidebarList() {
+  if (!tmModel) return
+  const n = tmModel.getTotalClasses()
+  const list = document.getElementById('fw-class-list')
+  if (!list) return
+  list.innerHTML = ''
+  for (let i = 0; i < n; i++) {
+    // metadata.json stores class labels; tmPose exposes them via getClassLabels()
+    const label = tmModel.getClassLabels ? tmModel.getClassLabels()[i] : `Class ${i}`
+    list.innerHTML += `
+      <div class="fw-class-item" id="fw-item-${i}">
+        <div class="fw-class-name" title="${label}">${label}</div>
+        <div class="fw-class-bar-wrap"><div class="fw-class-bar" id="fw-bar-${i}" style="width:0%"></div></div>
+        <div class="fw-class-pct" id="fw-pct-${i}">0%</div>
+      </div>`
+  }
+}
+
+/**
+ * Run TM inference on current video frame.
+ * Uses a hidden 200×200 canvas to mirror what the webcam sees.
+ * Returns early if pose is lost or model not ready.
+ */
+async function runTMInference() {
+  if (!tmReady || !tmModel || !poseRunning) return
+  if (!hipX) return  // no person in frame
+
+  try {
+    const tmCanvas = document.getElementById('tm-canvas')
+    const tmCtx    = tmCanvas.getContext('2d')
+
+    // Draw current video frame into the hidden TM canvas (flipped to match display)
+    tmCtx.save()
+    tmCtx.scale(-1, 1)
+    tmCtx.drawImage(video, -200, 0, 200, 200)
+    tmCtx.restore()
+
+    // Run TM pose estimation + classification
+    const { posenetOutput } = await tmModel.estimatePose(tmCanvas)
+    const predictions = await tmModel.predict(posenetOutput)
+
+    // Find top prediction
+    const top = predictions.reduce((a, b) => a.probability > b.probability ? a : b)
+
+    // Update sidebar bars
+    predictions.forEach((p, i) => {
+      const pct = Math.round(p.probability * 100)
+      const bar = document.getElementById(`fw-bar-${i}`)
+      const pctEl = document.getElementById(`fw-pct-${i}`)
+      if (bar) bar.style.width = pct + '%'
+      if (pctEl) pctEl.textContent = pct + '%'
+    })
+
+    // Update top badge
+    if (fwBadge) {
+      if (top.probability >= TM_CONFIDENCE) {
+        fwBadge.textContent = '🏸 ' + top.className.toUpperCase()
+        fwBadge.className   = 'active'
+      } else {
+        fwBadge.textContent = '🏸 —'
+        fwBadge.className   = 'low'
+      }
+    }
+  } catch (e) {
+    // Silent fail — inference errors shouldn't crash the session
+  }
+}
+
+/**
+ * Start the TM inference loop (runs independently of MoveNet rAF loop).
+ */
+function startTMLoop() {
+  if (tmLoopRunning || !tmReady) return
+  tmLoopRunning = true
+  tmLoopId = setInterval(runTMInference, TM_INTERVAL_MS)
+}
+
+/**
+ * Stop TM inference loop.
+ */
+function stopTMLoop() {
+  tmLoopRunning = false
+  if (tmLoopId !== null) { clearInterval(tmLoopId); tmLoopId = null }
+  if (fwBadge) { fwBadge.style.display = 'none'; fwBadge.textContent = '🏸 —' }
+  const fwCard = document.getElementById('fw-sidebar-card')
+  if (fwCard) fwCard.style.display = 'none'
+}
+// ════════════════════════════════════════════════════════════════
 
 // ── Safe Timer ────────────────────────────────────────────────
 function stopSafeTimer() {
@@ -349,15 +488,7 @@ async function startCamera() {
 // ── Model ─────────────────────────────────────────────────────
 async function loadModel() {
   modelStatus.className = 'err'
-  // Loading state
-   modelStatus.textContent = 'Loading AI Model… ⏳'
-   
-   // Success state  
-   modelStatus.textContent = 'AI Model Ready ✓'
-   
-   // Error state
-   modelStatus.textContent = '❌ AI Model failed — check connection'
-   
+  modelStatus.textContent = 'Loading AI Model… ⏳'
   try {
     detector = await poseDetection.createDetector(
       poseDetection.SupportedModels.MoveNet,
@@ -411,6 +542,8 @@ async function detectPose() {
             poseBadge.textContent='TRACKING'; poseBadge.classList.remove('lost')
             feedback.textContent='Calibrated — starting…'
             calibSound()
+            // Start TM loop once calibrated
+            if (tmEnabled && tmReady) startTMLoop()
           } else {
             const pct=Math.round(calibFrames/CALIB_FRAMES*100)
             poseBadge.textContent=`CAL ${pct}%`
@@ -645,7 +778,7 @@ function scoreRound(hit, responseMs=null) {
 
 // ── Session ───────────────────────────────────────────────────
 function beginSession() {
-   import('./database.js').then(m => m.default.getCurrentUser())
+  import('./database.js').then(m => m.default.getCurrentUser())
   resetPauseState()
   session.totalRounds=parseInt(slRounds.value); session.timePerDir=parseInt(slTime.value)
   session.voiceOn=chkVoice.checked; session.beepOn=chkBeep.checked
@@ -668,25 +801,24 @@ function endSession() {
   session.active=false
   stopSafeTimer()
   poseRunning=false
+  stopTMLoop()  // ← stop TM inference
   if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null }
 
   const acc = session.totalRounds > 0 
     ? Math.round(session.hits/session.totalRounds*100) : 0
 
-  // ✅ Skip saving zero sessions
   if (session.score === 0 && acc === 0) {
     console.log('⚠️ Zero session — not saving')
     showResults()
     return
   }
    
-  // ✅ Only save real sessions
   try {
     const xpEarned = 50 + session.hits*2 + (acc>=90?30:0)
     import('./database.js').then(m => {
       const DB = m.default
       const user = DB.getCurrentUser()
-      if (!user) return // ← skip save for guests
+      if (!user) return
       DB.saveSession({
         mode: 'footwork', drill: 'footwork',
         score: session.score, hits: session.hits,
@@ -700,7 +832,6 @@ function endSession() {
     })
   } catch(e){ console.warn('session save failed:', e) }
 
-  // Guest session tracking
   import('./database.js').then(m => {
     const user = m.default.getCurrentUser()
     if (!user) {
@@ -717,6 +848,7 @@ function endSession() {
 
   showResults()
 }
+
 // ── Results ───────────────────────────────────────────────────
 function showResults() {
   if (typeof checkOrientation === 'function') setTimeout(checkOrientation, 100)
@@ -911,11 +1043,18 @@ document.getElementById('btn-start-session').addEventListener('click', async () 
     }
   }
 
+  // Read footwork toggle
+  tmEnabled = chkFootwork ? chkFootwork.checked : false
+
   setupScreen.classList.remove('active')
   try { getAudio() } catch(e){}
   try {
     await startCamera()
     await loadModel()
+
+    // Load TM model if enabled (non-blocking — failures are silent)
+    if (tmEnabled) await loadTMModel()
+
     poseRunning = true
     detectPose()
     setTimeout(beginSession, 500)
@@ -926,10 +1065,10 @@ document.getElementById('btn-start-session').addEventListener('click', async () 
   }
 })
 
-// ✅ btn-stop now just calls endSession() — no duplicate save! 🎯
 document.getElementById('btn-stop').addEventListener('click', () => {
   stopSafeTimer()
   poseRunning = false
+  stopTMLoop()
   if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null }
   if (video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop())
   endSession()
@@ -941,18 +1080,22 @@ document.getElementById('btn-again').addEventListener('click', () => {
   calibrated=false; calibFrames=0; calibSumX=0; calibSumY=0
   centerX=null; centerY=null; hipX=null; hipY=null
   smoothHipX=null; smoothHipY=null; smoothFeetX=null; smoothFeetY=null
+  // Reset TM state for next session
+  tmReady = false; tmModel = null; tmEnabled = false
+  stopTMLoop()
   setupScreen.classList.add('active')
 })
 
 document.addEventListener('keydown', e => {
   if (e.key==='Escape') document.getElementById('btn-stop').click()
 })
-// Preload model silently on page open
+
+// Preload MoveNet silently on page open
 window.addEventListener('load', () => {
   setTimeout(() => {
     poseDetection.createDetector(
       poseDetection.SupportedModels.MoveNet,
       { runtime:'tfjs', modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
-    ).then(d => { detector = d; modelStatus.textContent = 'AI Model Ready ✓'; console.log('✅ Model preloaded!') })
-  }, 2000) // wait 2s after page load
+    ).then(d => { detector = d; modelStatus.textContent = 'AI Model Ready ✓'; console.log('✅ MoveNet preloaded!') })
+  }, 2000)
 })
