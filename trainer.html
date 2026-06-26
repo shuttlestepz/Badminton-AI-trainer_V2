@@ -590,17 +590,6 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
             </div>
             <label class="toggle"><input type="checkbox" id="chk-footwork"><span class="toggle-slider"></span></label>
           </div>
-
-          <!-- Model path — shown only when footwork toggle is on -->
-          <div class="fw-path-row" id="fw-path-row" style="display:none">
-            <div class="slabel" style="margin-bottom:0">MODEL PATH</div>
-            <input type="text" class="fw-path-input" id="fw-model-path"
-              placeholder="./model/footwork/" value="./model/">
-            <div class="fw-path-note">
-              Folder containing model.json, metadata.json, weights.bin<br>
-              Export from Teachable Machine → TensorFlow.js → Download
-            </div>
-          </div>
         </div>
 
         <div id="limit-warn" style="display:none;align-items:center;gap:10px;background:rgba(240,144,64,.08);border:1px solid rgba(240,144,64,.25);border-radius:10px;padding:10px 14px;margin-bottom:16px;">
@@ -711,10 +700,6 @@ async function tLogout() {
   window.location.href = 'login.html'
 }
 
-// ── Show/hide footwork model path input ──
-document.getElementById('chk-footwork').addEventListener('change', function() {
-  document.getElementById('fw-path-row').style.display = this.checked ? 'block' : 'none'
-})
 </script>
 
 <!-- Auth guard -->
