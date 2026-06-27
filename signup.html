@@ -318,7 +318,7 @@
 
         <!-- Mobile number with country code -->
         <div class="form-group">
-          <label class="form-label" for="phone">Mobile Number <span style="color:var(--text3);font-weight:400">(optional)</span></label>
+          <label class="form-label" for="phone">Mobile Number</label>
           <div class="phone-wrap">
             <!-- Country code picker -->
             <div class="phone-cc" id="cc-trigger" role="button" tabindex="0" aria-label="Select country code">
@@ -714,9 +714,8 @@ renderList()
       : null
 
     // Validate phone digits if entered
-    if (rawPhone && !/^\d{6,15}$/.test(rawPhone.replace(/\s/g, ''))) {
-      return showErr('Enter a valid mobile number (digits only).')
-    }
+    if (!rawPhone) return showErr('Enter your mobile number.')
+    if (!/^\d{6,15}$/.test(rawPhone.replace(/\s/g, ''))) return showErr('Enter a valid mobile number (digits only).')
 
     hideErr()
 
