@@ -633,37 +633,56 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
                   <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">
                     SHARE YOUR RESULT
                   </div>
+                  
                   <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        
-                    <!-- In-App Chat -->
-                    <button id="share-chat" onclick="shareViaChat()"
-                      style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:8px;
+
+                    <!-- Share (native sheet on mobile, download on desktop) -->
+                    <button onclick="shareNative()"
+                      style="flex:1;min-width:130px;display:flex;align-items:center;justify-content:center;gap:8px;
+                             padding:11px 14px;background:var(--accent);color:#050908;border:none;
+                             border-radius:var(--r-md);font-family:var(--font-display);font-size:12px;
+                             font-weight:700;cursor:pointer;letter-spacing:.5px;box-shadow:0 0 18px var(--accent-glow);">
+                      📤 Share Scorecard
+                    </button>
+                  
+                    <!-- Download image -->
+                    <button onclick="downloadScoreCard()"
+                      style="flex:1;min-width:110px;display:flex;align-items:center;justify-content:center;gap:8px;
                              padding:11px 14px;background:var(--accent-dim);border:1px solid var(--border2);
                              border-radius:var(--r-md);font-family:var(--font-display);font-size:12px;
-                             font-weight:700;color:var(--accent);cursor:pointer;transition:all .15s;letter-spacing:.5px;">
-                      💬 In-App Chat
+                             font-weight:700;color:var(--accent);cursor:pointer;letter-spacing:.5px;">
+                      ⬇ Save Image
                     </button>
-        
+                  
                     <!-- WhatsApp -->
-                    <button id="share-wa" onclick="shareViaWhatsApp()"
-                      style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:8px;
+                    <button onclick="shareViaWhatsApp()"
+                      style="flex:1;min-width:110px;display:flex;align-items:center;justify-content:center;gap:8px;
                              padding:11px 14px;background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.25);
                              border-radius:var(--r-md);font-family:var(--font-display);font-size:12px;
-                             font-weight:700;color:#25d366;cursor:pointer;transition:all .15s;letter-spacing:.5px;">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                             font-weight:700;color:#25d366;cursor:pointer;letter-spacing:.5px;">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                       WhatsApp
                     </button>
-        
+                  
                     <!-- Email -->
-                    <button id="share-email" onclick="shareViaEmail()"
-                      style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:8px;
+                    <button onclick="shareViaEmail()"
+                      style="flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:8px;
                              padding:11px 14px;background:rgba(96,180,255,.07);border:1px solid rgba(96,180,255,.2);
                              border-radius:var(--r-md);font-family:var(--font-display);font-size:12px;
-                             font-weight:700;color:#60b4ff;cursor:pointer;transition:all .15s;letter-spacing:.5px;">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+                             font-weight:700;color:#60b4ff;cursor:pointer;letter-spacing:.5px;">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
                       Email
                     </button>
-        
+                  
+                    <!-- In-App Chat -->
+                    <button onclick="shareViaChat()"
+                      style="flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:8px;
+                             padding:11px 14px;background:var(--accent-dim);border:1px solid var(--border2);
+                             border-radius:var(--r-md);font-family:var(--font-display);font-size:12px;
+                             font-weight:700;color:var(--accent);cursor:pointer;letter-spacing:.5px;">
+                      💬 Chat
+                    </button>
+                  
                   </div>
         
                   <!-- In-app chat friend picker (shown after clicking Chat) -->
@@ -835,31 +854,202 @@ checkOrientation()
 window.addEventListener('resize', checkOrientation)
 window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 300))
 </script>
-  <script>
+<script>
 /* ══════════════════════════════════════════
-   SHARE RESULT LOGIC
+   SHARE RESULT — Canvas scorecard + link
 ══════════════════════════════════════════ */
-function _buildShareText() {
-  const score   = document.getElementById('r-score')?.textContent  || '0'
-  const acc     = document.getElementById('r-acc')?.textContent    || '0%'
-  const streak  = document.getElementById('r-streak')?.textContent || '0'
-  const speed   = document.getElementById('r-speed')?.textContent  || '—'
-  const grade   = document.getElementById('r-grade')?.textContent  || ''
-  return `🏸 Shuttlestepz Session Result ${grade}\n\nScore: ${score}\nAccuracy: ${acc}\nBest Streak: ${streak}\nAvg Response: ${speed}\n\n🔥 Train with AI at https://shuttlestepz.github.io/Badminton-AI-trainer_V2/`
+
+const APP_URL = 'https://shuttlestepz.github.io/Badminton-AI-trainer_V2/'
+
+/* ── Build scorecard image via Canvas ── */
+async function buildScoreCard() {
+  const score  = document.getElementById('r-score')?.textContent  || '0'
+  const acc    = document.getElementById('r-acc')?.textContent    || '0%'
+  const streak = document.getElementById('r-streak')?.textContent || '0'
+  const speed  = document.getElementById('r-speed')?.textContent  || '—'
+  const grade  = document.getElementById('r-grade')?.textContent  || ''
+
+  const W = 800, H = 420
+  const canvas = document.createElement('canvas')
+  canvas.width = W; canvas.height = H
+  const c = canvas.getContext('2d')
+
+  // Background
+  c.fillStyle = '#050908'
+  c.fillRect(0, 0, W, H)
+
+  // Green glow top-left
+  const glow = c.createRadialGradient(0, 0, 0, 0, 0, 400)
+  glow.addColorStop(0, 'rgba(56,210,90,0.13)')
+  glow.addColorStop(1, 'transparent')
+  c.fillStyle = glow
+  c.fillRect(0, 0, W, H)
+
+  // Border
+  c.strokeStyle = 'rgba(56,210,90,0.3)'
+  c.lineWidth = 1.5
+  roundRect(c, 12, 12, W-24, H-24, 20)
+  c.stroke()
+
+  // Accent top bar
+  c.fillStyle = '#38d25a'
+  roundRect(c, 12, 12, W-24, 4, 2)
+  c.fill()
+
+  // Logo text
+  c.font = '700 15px "DM Mono", monospace'
+  c.fillStyle = '#38d25a'
+  c.letterSpacing = '3px'
+  c.fillText('SHUTTLESTEPZ', 36, 58)
+  c.letterSpacing = '0px'
+
+  // Grade badge
+  if (grade) {
+    c.fillStyle = 'rgba(56,210,90,0.12)'
+    roundRect(c, W-100, 36, 68, 28, 6)
+    c.fill()
+    c.strokeStyle = 'rgba(56,210,90,0.35)'
+    c.lineWidth = 1
+    roundRect(c, W-100, 36, 68, 28, 6)
+    c.stroke()
+    c.font = '700 12px "DM Mono", monospace'
+    c.fillStyle = '#38d25a'
+    c.textAlign = 'center'
+    c.fillText(grade, W-66, 55)
+    c.textAlign = 'left'
+  }
+
+  // Big score
+  c.font = '900 110px "Syne", sans-serif'
+  c.fillStyle = '#38d25a'
+  c.fillText(score, 36, 190)
+
+  // "SCORE" label
+  c.font = '500 11px "DM Mono", monospace'
+  c.fillStyle = 'rgba(56,210,90,0.5)'
+  c.letterSpacing = '3px'
+  c.fillText('SCORE', 40, 215)
+  c.letterSpacing = '0px'
+
+  // Divider line
+  c.strokeStyle = 'rgba(56,210,90,0.12)'
+  c.lineWidth = 1
+  c.beginPath(); c.moveTo(36, 240); c.lineTo(W-36, 240); c.stroke()
+
+  // Stat blocks
+  const stats = [
+    { label: 'ACCURACY',     value: acc    },
+    { label: 'BEST STREAK',  value: streak },
+    { label: 'AVG RESPONSE', value: speed  },
+  ]
+  const colW = (W - 72) / 3
+  stats.forEach((s, i) => {
+    const x = 36 + i * colW
+    const midX = x + colW / 2
+
+    // Stat box bg
+    c.fillStyle = 'rgba(255,255,255,0.03)'
+    roundRect(c, x + 6, 258, colW - 12, 90, 10)
+    c.fill()
+    c.strokeStyle = 'rgba(56,210,90,0.1)'
+    c.lineWidth = 1
+    roundRect(c, x + 6, 258, colW - 12, 90, 10)
+    c.stroke()
+
+    // Value
+    c.font = '800 28px "Syne", sans-serif'
+    c.fillStyle = '#e2ede4'
+    c.textAlign = 'center'
+    c.fillText(s.value, midX, 298)
+
+    // Label
+    c.font = '500 9px "DM Mono", monospace'
+    c.fillStyle = '#364e3a'
+    c.letterSpacing = '2px'
+    c.fillText(s.label, midX, 318)
+    c.letterSpacing = '0px'
+  })
+  c.textAlign = 'left'
+
+  // Tagline + URL
+  c.font = '500 12px "DM Mono", monospace'
+  c.fillStyle = 'rgba(110,148,117,0.6)'
+  c.fillText('Smash limits. Step beyond.', 36, 382)
+
+  c.font = '600 12px "DM Mono", monospace'
+  c.fillStyle = 'rgba(56,210,90,0.5)'
+  c.fillText(APP_URL, 36, 400)
+
+  return { canvas, score, acc, streak, speed, grade }
+}
+
+/* ── Helper: rounded rect path ── */
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+  ctx.lineTo(x + r, y + h)
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+  ctx.lineTo(x, y + r)
+  ctx.quadraticCurveTo(x, y, x + r, y)
+  ctx.closePath()
+}
+
+/* ── Share text (with link) ── */
+function _shareText(score, acc, streak, grade) {
+  return `🏸 I scored ${score} on Shuttlestepz! ${grade}\nAccuracy: ${acc} · Streak: ${streak}\n\nTrain your badminton footwork with AI 👇\n${APP_URL}`
 }
 
 /* ── WhatsApp ── */
-function shareViaWhatsApp() {
-  const text = encodeURIComponent(_buildShareText())
+async function shareViaWhatsApp() {
+  const { score, acc, streak, grade } = await buildScoreCard()
+  const text = encodeURIComponent(_shareText(score, acc, streak, grade))
   window.open(`https://wa.me/?text=${text}`, '_blank')
+  showShareToast('Opening WhatsApp…')
 }
 
-/* ── Email ── */
-function shareViaEmail() {
-  const score = document.getElementById('r-score')?.textContent || '0'
-  const body  = encodeURIComponent(_buildShareText())
-  const sub   = encodeURIComponent(`🏸 I just scored ${score} on Shuttlestepz!`)
+/* ── Email with embedded image ── */
+async function shareViaEmail() {
+  const { score, acc, streak, grade } = await buildScoreCard()
+  const sub  = encodeURIComponent(`🏸 I scored ${score} on Shuttlestepz! ${grade}`)
+  const body = encodeURIComponent(
+    _shareText(score, acc, streak, grade) +
+    '\n\n(Download the scorecard image from the app after your session)'
+  )
   window.location.href = `mailto:?subject=${sub}&body=${body}`
+  showShareToast('Opening mail app…')
+}
+
+/* ── Download scorecard image ── */
+async function downloadScoreCard() {
+  const { canvas, score } = await buildScoreCard()
+  const link = document.createElement('a')
+  link.download = `shuttlestepz-${score}.png`
+  link.href = canvas.toDataURL('image/png')
+  link.click()
+  showShareToast('Scorecard saved!')
+}
+
+/* ── Web Share API (native share sheet on mobile) ── */
+async function shareNative() {
+  const { canvas, score, acc, streak, grade } = await buildScoreCard()
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+  const file = new File([blob], `shuttlestepz-${score}.png`, { type: 'image/png' })
+
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({
+      title: `Shuttlestepz — Score ${score} ${grade}`,
+      text: _shareText(score, acc, streak, grade),
+      files: [file],
+    })
+  } else {
+    // Fallback: download the image
+    await downloadScoreCard()
+    showShareToast('Image saved — share it manually!')
+  }
 }
 
 /* ── In-App Chat ── */
@@ -868,64 +1058,52 @@ async function shareViaChat() {
   const list   = document.getElementById('share-friends-list')
   const status = document.getElementById('share-chat-status')
 
-  // Toggle picker
   if (picker.style.display === 'block') { picker.style.display = 'none'; return }
   picker.style.display = 'block'
   list.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Loading friends…</div>'
   status.style.display = 'none'
 
   try {
-    // Load friends from Firebase social connections
-    const DB   = window.DB || (await import('./js/database.js')).default
+    const DB   = window.DB   || (await import('./js/database.js')).default
     const AUTH = window.AUTH || (await import('./js/auth.js')).default
     const user = AUTH.currentUser()
-    if (!user) { list.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sign in to share with friends.</div>'; return }
+    if (!user) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sign in to share with friends.</div>'
+      return
+    }
 
-    // Get friends list (users you follow / are connected with)
     const friends = await DB.getFriends(user.uid).catch(() => [])
-
     if (!friends || friends.length === 0) {
-      list.innerHTML = `
-        <div style="font-size:12px;color:var(--text3);padding:8px 0;line-height:1.6;">
-          No friends yet. Add friends from the
-          <a href="social.html" style="color:var(--accent);text-decoration:none;font-weight:600;">Social</a> page.
-        </div>`
+      list.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:8px 0;line-height:1.6;">
+        No friends yet. Add friends from the <a href="social.html" style="color:var(--accent);text-decoration:none;font-weight:600;">Social</a> page.</div>`
       return
     }
 
     list.innerHTML = friends.map(f => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;
-                  background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);
-                  padding:10px 13px;">
+                  background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 13px;">
         <div style="display:flex;align-items:center;gap:10px;">
           <div style="width:32px;height:32px;border-radius:50%;background:var(--accent-dim);
                       border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;
                       font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;">
-            ${(f.displayName || f.username || '?')[0].toUpperCase()}
+            ${(f.displayName||f.username||'?')[0].toUpperCase()}
           </div>
-          <div style="font-size:13px;font-weight:600;color:var(--text);">${f.displayName || f.username || 'Friend'}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${f.displayName||f.username||'Friend'}</div>
         </div>
-        <button onclick="sendResultToFriend('${f.uid}','${(f.displayName||f.username||'Friend').replace(/'/g,"\\'")}', this)"
-          style="padding:6px 14px;background:var(--accent);color:#050908;border:none;
-                 border-radius:6px;font-family:var(--font-display);font-size:11px;
-                 font-weight:700;cursor:pointer;letter-spacing:.5px;transition:all .15s;">
+        <button onclick="sendResultToFriend('${f.uid}','${(f.displayName||f.username||'Friend').replace(/'/g,"\\'")}',this)"
+          style="padding:6px 14px;background:var(--accent);color:#050908;border:none;border-radius:6px;
+                 font-family:var(--font-display);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.5px;">
           Send
         </button>
-      </div>
-    `).join('')
-
+      </div>`).join('')
   } catch(e) {
-    console.error('[share] friends load error:', e)
     list.innerHTML = '<div style="font-size:12px;color:var(--text3);">Could not load friends.</div>'
   }
 }
 
 async function sendResultToFriend(uid, name, btn) {
   const status = document.getElementById('share-chat-status')
-  btn.disabled = true
-  btn.textContent = '✓ Sent'
-  btn.style.background = 'var(--accent-dim)'
-  btn.style.color = 'var(--accent)'
+  btn.disabled = true; btn.textContent = 'Sending…'
 
   try {
     const score  = document.getElementById('r-score')?.textContent  || '0'
@@ -937,26 +1115,42 @@ async function sendResultToFriend(uid, name, btn) {
     const AUTH = window.AUTH || (await import('./js/auth.js')).default
     const user = AUTH.currentUser()
 
-    // Send a chat message with the result card
     await DB.sendMessage(uid, {
       type: 'result_share',
-      text: `🏸 Check out my session result!\n\nScore: ${score} ${grade}\nAccuracy: ${acc} · Streak: ${streak}\n\n👉 shuttlestepz.github.io/Badminton-AI-trainer_V2/`,
+      text: `🏸 ${user?.username||'Athlete'} scored ${score} ${grade}!\nAccuracy: ${acc} · Streak: ${streak}\n\n${APP_URL}`,
       senderName: user?.username || 'Athlete',
     })
 
+    btn.textContent = '✓ Sent'
+    btn.style.background = 'var(--accent-dim)'
+    btn.style.color = 'var(--accent)'
     status.style.display = 'block'
-    status.textContent = `✅ Result sent to ${name}!`
+    status.textContent = `✅ Sent to ${name}!`
     status.style.color = 'var(--accent)'
   } catch(e) {
-    console.error('[share] send error:', e)
+    btn.disabled = false; btn.textContent = 'Send'
     status.style.display = 'block'
-    status.textContent = '❌ Failed to send. Try again.'
+    status.textContent = '❌ Failed. Try again.'
     status.style.color = 'var(--red)'
-    btn.disabled = false
-    btn.textContent = 'Send'
-    btn.style.background = 'var(--accent)'
-    btn.style.color = '#050908'
   }
+}
+
+/* ── Toast ── */
+function showShareToast(msg) {
+  let t = document.getElementById('share-toast')
+  if (!t) {
+    t = document.createElement('div')
+    t.id = 'share-toast'
+    t.style.cssText = `position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);
+      background:#0e1610;border:1px solid rgba(56,210,90,.3);border-radius:20px;
+      padding:10px 20px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;
+      color:#38d25a;z-index:9999;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;`
+    document.body.appendChild(t)
+  }
+  t.textContent = msg
+  t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'
+  clearTimeout(t._timer)
+  t._timer = setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)' }, 2800)
 }
 </script>
 </body>
