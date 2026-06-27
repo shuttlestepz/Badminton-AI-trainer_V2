@@ -8,6 +8,88 @@
 <link rel="stylesheet" href="/Badminton-AI-trainer_V2/css/base.css">
 <link rel="stylesheet" href="/Badminton-AI-trainer_V2/css/signup.css">
 <style>
+  /* ── Phone field ──────────────────────────────────────────── */
+  .phone-wrap {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .phone-cc {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg2, #0d1a10);
+    border: 1.5px solid var(--border, #1e3322);
+    border-radius: 9px;
+    padding: 0 10px;
+    cursor: pointer;
+    font-size: .88rem;
+    color: var(--text, #e8f5ea);
+    white-space: nowrap;
+    transition: border-color .2s;
+    position: relative;
+    user-select: none;
+    min-width: 88px;
+  }
+  .phone-cc:hover,
+  .phone-cc.open { border-color: var(--accent, #3dff6e); }
+  .phone-cc-flag { font-size: 1.1rem; line-height: 1; }
+  .phone-cc-dial { font-weight: 600; }
+  .phone-cc-arrow { font-size: .6rem; opacity: .5; margin-left: auto; }
+
+  /* Dropdown */
+  .cc-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 260px;
+    background: #111f14;
+    border: 1.5px solid #2a3d2e;
+    border-radius: 10px;
+    z-index: 200;
+    box-shadow: 0 12px 32px rgba(0,0,0,.55);
+    overflow: hidden;
+  }
+  .cc-dropdown.open { display: block; }
+  .cc-search {
+    padding: 8px 10px;
+    border-bottom: 1px solid #1e3322;
+  }
+  .cc-search input {
+    width: 100%;
+    background: #0d1a10;
+    border: 1px solid #1e3322;
+    border-radius: 6px;
+    padding: 6px 9px;
+    color: var(--text, #e8f5ea);
+    font-size: .8rem;
+    outline: none;
+  }
+  .cc-search input:focus { border-color: var(--accent, #3dff6e); }
+  .cc-list {
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .cc-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 12px;
+    font-size: .82rem;
+    cursor: pointer;
+    transition: background .12s;
+    color: var(--text, #e8f5ea);
+  }
+  .cc-item:hover { background: rgba(255,255,255,.05); }
+  .cc-item.selected { background: rgba(61,255,110,.07); }
+  .cc-item-flag { font-size: 1rem; }
+  .cc-item-name { flex: 1; color: var(--text3, #5a7a60); font-size: .78rem; }
+  .cc-item-dial { font-weight: 600; font-size: .82rem; }
+
+  .phone-wrap .form-input { flex: 1; min-width: 0; }
+
   /* ── Checkout Modal ───────────────────────────────────────── */
   .checkout-overlay {
     display: none;
@@ -59,16 +141,8 @@
     font-family: 'Space Mono', monospace, sans-serif;
     margin-bottom: .5rem;
   }
-  .checkout-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: .25rem;
-  }
-  .checkout-subtitle {
-    font-size: .8rem;
-    color: var(--text3, #5a7a60);
-    margin-bottom: 1.4rem;
-  }
+  .checkout-title { font-size: 1.25rem; font-weight: 700; margin-bottom: .25rem; }
+  .checkout-subtitle { font-size: .8rem; color: var(--text3, #5a7a60); margin-bottom: 1.4rem; }
 
   .checkout-summary {
     background: rgba(255,255,255,.03);
@@ -102,7 +176,6 @@
   .checkout-divider::before { left: 0; }
   .checkout-divider::after  { right: 0; }
 
-  /* UPI field */
   .checkout-field { margin-bottom: 1rem; }
   .checkout-field label {
     display: block;
@@ -124,13 +197,8 @@
   }
   .checkout-field input:focus { border-color: var(--accent, #3dff6e); }
   .checkout-field input.err  { border-color: #e04848; }
-  .checkout-hint {
-    font-size: .7rem;
-    color: var(--text3, #5a7a60);
-    margin-top: .3rem;
-  }
+  .checkout-hint { font-size: .7rem; color: var(--text3, #5a7a60); margin-top: .3rem; }
 
-  /* Pay button */
   .btn-pay {
     width: 100%;
     padding: 14px;
@@ -158,7 +226,6 @@
     margin-top: .75rem;
   }
 
-  /* Spinner reuse */
   .btn-spinner {
     width: 14px; height: 14px;
     border: 2px solid rgba(0,0,0,.3);
@@ -247,6 +314,29 @@
           <label class="form-label" for="email">Email Address</label>
           <input class="form-input" type="email" id="email"
             placeholder="you@example.com" autocomplete="email" required>
+        </div>
+
+        <!-- Mobile number with country code -->
+        <div class="form-group">
+          <label class="form-label" for="phone">Mobile Number <span style="color:var(--text3);font-weight:400">(optional)</span></label>
+          <div class="phone-wrap">
+            <!-- Country code picker -->
+            <div class="phone-cc" id="cc-trigger" role="button" tabindex="0" aria-label="Select country code">
+              <span class="phone-cc-flag" id="cc-flag">🇮🇳</span>
+              <span class="phone-cc-dial" id="cc-dial">+91</span>
+              <span class="phone-cc-arrow">▼</span>
+              <!-- Dropdown -->
+              <div class="cc-dropdown" id="cc-dropdown">
+                <div class="cc-search">
+                  <input type="text" id="cc-search-input" placeholder="Search country…" autocomplete="off">
+                </div>
+                <div class="cc-list" id="cc-list"></div>
+              </div>
+            </div>
+            <input class="form-input" type="tel" id="phone"
+              placeholder="98765 43210" autocomplete="tel-national" inputmode="numeric">
+          </div>
+          <div class="form-hint">Used only for account recovery. Never shared.</div>
         </div>
 
         <div class="form-group">
@@ -386,6 +476,103 @@
   </div>
 </div>
 
+<script>
+/* ══════════════════════════════════════════
+   COUNTRY CODE DATA
+══════════════════════════════════════════ */
+const COUNTRIES = [
+  { flag:'🇮🇳', name:'India',          dial:'+91'  },
+  { flag:'🇺🇸', name:'United States',  dial:'+1'   },
+  { flag:'🇬🇧', name:'United Kingdom', dial:'+44'  },
+  { flag:'🇦🇺', name:'Australia',      dial:'+61'  },
+  { flag:'🇨🇦', name:'Canada',         dial:'+1'   },
+  { flag:'🇸🇬', name:'Singapore',      dial:'+65'  },
+  { flag:'🇲🇾', name:'Malaysia',       dial:'+60'  },
+  { flag:'🇦🇪', name:'UAE',            dial:'+971' },
+  { flag:'🇧🇩', name:'Bangladesh',     dial:'+880' },
+  { flag:'🇵🇰', name:'Pakistan',       dial:'+92'  },
+  { flag:'🇱🇰', name:'Sri Lanka',      dial:'+94'  },
+  { flag:'🇳🇵', name:'Nepal',          dial:'+977' },
+  { flag:'🇮🇩', name:'Indonesia',      dial:'+62'  },
+  { flag:'🇵🇭', name:'Philippines',    dial:'+63'  },
+  { flag:'🇹🇭', name:'Thailand',       dial:'+66'  },
+  { flag:'🇻🇳', name:'Vietnam',        dial:'+84'  },
+  { flag:'🇰🇷', name:'South Korea',    dial:'+82'  },
+  { flag:'🇯🇵', name:'Japan',          dial:'+81'  },
+  { flag:'🇨🇳', name:'China',          dial:'+86'  },
+  { flag:'🇩🇪', name:'Germany',        dial:'+49'  },
+  { flag:'🇫🇷', name:'France',         dial:'+33'  },
+  { flag:'🇮🇹', name:'Italy',          dial:'+39'  },
+  { flag:'🇪🇸', name:'Spain',          dial:'+34'  },
+  { flag:'🇧🇷', name:'Brazil',         dial:'+55'  },
+  { flag:'🇲🇽', name:'Mexico',         dial:'+52'  },
+  { flag:'🇿🇦', name:'South Africa',   dial:'+27'  },
+  { flag:'🇳🇬', name:'Nigeria',        dial:'+234' },
+  { flag:'🇰🇪', name:'Kenya',          dial:'+254' },
+  { flag:'🇳🇿', name:'New Zealand',    dial:'+64'  },
+  { flag:'🇷🇺', name:'Russia',         dial:'+7'   },
+]
+
+/* ── Render list ── */
+let selectedCountry = COUNTRIES[0] // default India
+
+function renderList(filter = '') {
+  const list = document.getElementById('cc-list')
+  const q = filter.toLowerCase()
+  const filtered = COUNTRIES.filter(c =>
+    c.name.toLowerCase().includes(q) || c.dial.includes(q)
+  )
+  list.innerHTML = filtered.map((c, i) => `
+    <div class="cc-item ${c === selectedCountry ? 'selected' : ''}"
+         data-index="${COUNTRIES.indexOf(c)}">
+      <span class="cc-item-flag">${c.flag}</span>
+      <span class="cc-item-name">${c.name}</span>
+      <span class="cc-item-dial">${c.dial}</span>
+    </div>
+  `).join('')
+
+  list.querySelectorAll('.cc-item').forEach(el => {
+    el.addEventListener('click', () => {
+      selectedCountry = COUNTRIES[+el.dataset.index]
+      document.getElementById('cc-flag').textContent = selectedCountry.flag
+      document.getElementById('cc-dial').textContent = selectedCountry.dial
+      closeDropdown()
+    })
+  })
+}
+
+/* ── Dropdown open/close ── */
+const ccTrigger  = document.getElementById('cc-trigger')
+const ccDropdown = document.getElementById('cc-dropdown')
+const ccSearch   = document.getElementById('cc-search-input')
+
+function openDropdown() {
+  ccDropdown.classList.add('open')
+  ccTrigger.classList.add('open')
+  ccSearch.value = ''
+  renderList()
+  ccSearch.focus()
+}
+function closeDropdown() {
+  ccDropdown.classList.remove('open')
+  ccTrigger.classList.remove('open')
+}
+
+ccTrigger.addEventListener('click', e => {
+  e.stopPropagation()
+  ccDropdown.classList.contains('open') ? closeDropdown() : openDropdown()
+})
+ccTrigger.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDropdown() }
+})
+ccSearch.addEventListener('input', () => renderList(ccSearch.value))
+ccSearch.addEventListener('click', e => e.stopPropagation())
+document.addEventListener('click', closeDropdown)
+
+// Init list
+renderList()
+</script>
+
 <script type="module">
   import AUTH from '/Badminton-AI-trainer_V2/js/auth.js'
 
@@ -400,8 +587,6 @@
   /* ── State ───────────────────────────────────────────────── */
   let role = 'student'
   let plan = 'free'
-
-  // Pending form data — filled before checkout opens, used after payment
   let pendingSignup = null
 
   /* ── Role selector ──────────────────────────────────────── */
@@ -425,7 +610,6 @@
       document.querySelectorAll('.plan-opt').forEach(o => o.classList.remove('selected'))
       opt.classList.add('selected')
       plan = opt.dataset.plan
-      // Update submit button label to hint what happens next
       document.getElementById('btn-signup').innerHTML =
         plan === 'premium' ? 'Continue to Payment →' : 'Create Account →'
     })
@@ -501,10 +685,11 @@
   overlay.addEventListener('click', e => { if (e.target === overlay) closeCheckout() })
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCheckout() })
 
-  /* ── The actual account creation (shared by both paths) ── */
-  async function doSignup(username, email, pw, schoolId) {
+  /* ── Account creation ───────────────────────────────────── */
+  async function doSignup(username, email, pw, schoolId, phone) {
     try {
-      const res = await AUTH.signup(username, email, pw, role, schoolId)
+      // Pass phone into signup — AUTH.signup passes extra fields to DB.registerUser
+      const res = await AUTH.signup(username, email, pw, role, schoolId, phone)
       if (!res.ok) { showErr(res.msg); return false }
       return true
     } catch (err) {
@@ -522,6 +707,17 @@
     const schoolId = document.getElementById('school-id').value.trim() || null
     const terms    = document.getElementById('terms').checked
 
+    // Phone — optional, combine dial code + number if provided
+    const rawPhone = document.getElementById('phone').value.trim()
+    const phone    = rawPhone
+      ? `${window.selectedCountry?.dial ?? '+91'}${rawPhone.replace(/\s/g, '')}`
+      : null
+
+    // Validate phone digits if entered
+    if (rawPhone && !/^\d{6,15}$/.test(rawPhone.replace(/\s/g, ''))) {
+      return showErr('Enter a valid mobile number (digits only).')
+    }
+
     hideErr()
 
     if (!username || username.length < 3) return showErr('Username must be at least 3 characters.')
@@ -530,17 +726,14 @@
     if (!terms)                           return showErr('Please accept the Terms of Service.')
 
     if (plan === 'premium') {
-      // Stash form data, open checkout — account created after payment
-      pendingSignup = { username, email, pw, schoolId }
+      pendingSignup = { username, email, pw, schoolId, phone }
       openCheckout()
       return
     }
 
-    // Free plan — create account immediately
     setLoading(true)
-    const ok = await doSignup(username, email, pw, schoolId)
+    const ok = await doSignup(username, email, pw, schoolId, phone)
     if (ok) {
-      console.log('[signup] ✔ Free — redirecting to dashboard')
       window.location.href = 'dashboard.html'
     } else {
       setLoading(false)
@@ -553,7 +746,6 @@
     const errEl  = document.getElementById('checkout-error')
     const btnPay = document.getElementById('btn-pay')
 
-    // Basic UPI validation: must contain @
     if (!upi || !upi.includes('@')) {
       errEl.textContent = 'Enter a valid UPI ID (e.g. name@gpay)'
       errEl.style.display = 'block'
@@ -561,18 +753,15 @@
     }
     errEl.style.display = 'none'
 
-    // Simulate payment processing
     btnPay.disabled = true
     btnPay.innerHTML = '<span class="btn-spinner"></span>Processing payment…'
 
-    await new Promise(r => setTimeout(r, 1800)) // simulated delay
+    await new Promise(r => setTimeout(r, 1800))
 
-    // Payment "succeeded" — now create the account with premium
-    const { username, email, pw, schoolId } = pendingSignup
-    const ok = await doSignup(username, email, pw, schoolId)
+    const { username, email, pw, schoolId, phone } = pendingSignup
+    const ok = await doSignup(username, email, pw, schoolId, phone)
 
     if (ok) {
-      // Mark premium in DB
       const upg = await AUTH.upgradePlan(null, 'premium').catch(() => ({ ok: false }))
       if (!upg.ok) {
         sessionStorage.setItem(
@@ -580,15 +769,19 @@
           "Payment received but Premium upgrade didn't complete. Please retry in Settings."
         )
       }
-      console.log('[signup] ✔ Premium — redirecting to dashboard')
       window.location.href = 'dashboard.html'
     } else {
-      // Account creation failed — re-enable pay button so user can retry
       btnPay.disabled = false
       btnPay.innerHTML = 'Pay &amp; Create Account →'
       errEl.textContent = 'Account creation failed. Check form errors and try again.'
       errEl.style.display = 'block'
     }
+  })
+
+  // Expose selectedCountry for the phone validator above
+  Object.defineProperty(window, 'selectedCountry', {
+    get: () => window._selectedCountry,
+    set: v  => { window._selectedCountry = v }
   })
 </script>
 <script type="module" src="js/auth.js"></script>
