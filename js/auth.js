@@ -86,12 +86,12 @@ DB.onAuthReady(async (fbUser) => {
 const AUTH = {
 
   // ── Sign up ───────────────────────────────────────────────
-  async signup(username, email, password, role = 'student', schoolId = null) {
+  async signup(username, email, password, role = 'student', schoolId = null, phone = null) {
     if (!username || username.trim().length < 3) return { ok:false, msg:'Username must be at least 3 characters.' }
     if (!email || !email.includes('@'))          return { ok:false, msg:'Enter a valid email address.' }
     if (!password || password.length < 6)        return { ok:false, msg:'Password must be at least 6 characters.' }
     try {
-      await DB.registerUser({ email, password, displayName: username.trim(), role, schoolCode: schoolId || '' })
+      await DB.registerUser({ email, password, displayName: username.trim(), role, schoolCode: schoolId || '', phone: phone || '' })
       await new Promise(r => setTimeout(r, 700))
       return { ok:true, user: getCache() }
     } catch(err) { return { ok:false, msg: _fbMsg(err) } }
