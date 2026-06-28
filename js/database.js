@@ -527,6 +527,31 @@ export async function getAITips(uid = null) {
   const snap = await getDoc(doc(db, 'users', id, 'meta', 'ai_tips'))
   return snap.exists() ? snap.data() : null
 }
+/* ═══════════════════════════════════════════════════════════════
+   14. PUSH NOTIFICATIONS
+═══════════════════════════════════════════════════════════════ */
+
+export async function savePushSubscription(subscription) {
+  const uid = _requireUID()
+  await setDoc(doc(db, 'pushSubscriptions', uid), {
+    subscription: JSON.parse(JSON.stringify(subscription)),
+    updatedAt: serverTimestamp(),
+  }, { merge: true })
+}
+
+export async function removePushSubscription() {
+  const uid = _requireUID()
+  await deleteDoc(doc(db, 'pushSubscriptions', uid)).catch(() => {})
+}
+
+export async function getLastSessionTime(uid = null) {
+  const id = uid || _requireUID()
+  const sessions = await getSessions({ uid: id, limitN: 1 })
+  if (!sessions.length) return null
+  const ts = sessions[0].createdAt
+  if (!ts) return null
+  return ts.toMillis ? ts.toMillis() : ts
+}
 
 export default {
   registerUser, loginUser, logoutUser, resetPassword, onAuthReady, getCurrentUser,
@@ -539,7 +564,7 @@ export default {
   unsubscribeAll, unsubscribe, resetUserData, saveAITips, getAITips, deleteUserData,
   searchUsersByUsername, sendFriendRequest, respondToFriendRequest,
   listenFriendRequests, listenFriends, getFriendshipStatus,
-  sendMessage, listenChat, listenMyChats, clearChat, deleteChat,
+  sendMessage, listenChat, listenMyChats, clearChat, deleteChat,savePushSubscription, removePushSubscription, getLastSessionTime,
 }
 
 /* ═══════════════════════════════════════════════════════════════
