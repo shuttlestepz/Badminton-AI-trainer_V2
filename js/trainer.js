@@ -830,6 +830,11 @@ function endSession() {
       })
       DB.awardXP(xpEarned)
     })
+    // ── Notify SW that training is done (for streak reminder) ──
+    import('./notifications.js').then(m => {
+      m.reportTrainingDone()
+      m.scheduleStreakReminder()
+    }).catch(() => {})
   } catch(e){ console.warn('session save failed:', e) }
 
   import('./database.js').then(m => {
