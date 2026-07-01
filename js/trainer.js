@@ -137,6 +137,62 @@ let calibrated=false, calibFrames=0, calibSumX=0, calibSumY=0
 const CALIB_FRAMES = 25
 
 // ════════════════════════════════════════════════════════════════
+// ── HYDRATION LAYER ──────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+let hydrationReminder = null
+let hydrationUserWeightKg = 65 // fallback if profile has no weight yet
+
+function showHydrationToast(message) {
+  let toast = document.getElementById('hydration-toast')
+  if (!toast) {
+    toast = document.createElement('div')
+    toast.id = 'hydration-toast'
+    toast.style.cssText = `
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+      background:#142920; border:1px solid #39e07a; color:#eafaf1;
+      padding:14px 20px; border-radius:10px; font-family:'DM Mono',monospace;
+      font-size:14px; opacity:0; transition:all 0.3s ease; z-index:9999; pointer-events:none;`
+    document.body.appendChild(toast)
+  }
+  toast.textContent = '💧 ' + message
+  toast.style.opacity = '1'
+  toast.style.transform = 'translateX(-50%) translateY(0)'
+  clearTimeout(toast._hideTimer)
+  toast._hideTimer = setTimeout(() => {
+    toast.style.opacity = '0'
+    toast.style.transform = 'translateX(-50%) translateY(20px)'
+  }, 3500)
+}
+
+function startHydrationForSession() {
+  if (typeof HydrationEngine === 'undefined') return // hydration.js not loaded on this page — skip silently
+  stopHydration()
+
+  const durationMin = Math.max(1, Math.round((session.totalRounds * (session.timePerDir + 2)) / 60))
+  const intensity = (session.difficulty === 'hard' || session.difficulty === 'pro') ? 'intense' : 'moderate'
+
+  const plan = HydrationEngine.calculateHydrationPlan({
+    weightKg: hydrationUserWeightKg,
+    durationMin,
+    intensity,
+  })
+
+  hydrationReminder = new HydrationEngine.HydrationReminder(plan, (message) => showHydrationToast(message))
+  hydrationReminder.start()
+}
+
+function stopHydration() {
+  if (hydrationReminder) { hydrationReminder.stop(); hydrationReminder = null }
+}
+
+// Pull weight from the user's profile once, if database.js exposes it
+import('./database.js').then(m => {
+  const user = m.default.getCurrentUser ? m.default.getCurrentUser() : null
+  if (user && user.weightKg) hydrationUserWeightKg = user.weightKg
+}).catch(() => {})
+// ════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════
 // ── TEACHABLE MACHINE FOOTWORK LAYER ────────────────────────────
 // ════════════════════════════════════════════════════════════════
 let tmModel          = null   // loaded tmPose model
@@ -793,6 +849,7 @@ function beginSession() {
   feedback.textContent=calibrated?'Starting in 2s…':'Stand still to calibrate…'
   injectPauseOverlay()
   if (typeof checkOrientation === 'function') checkOrientation()
+  startHydrationForSession()
   const w=setInterval(()=>{ if(calibrated){ clearInterval(w); feedback.textContent='GO!'; setTimeout(startRound,600) } },300)
 }
 
@@ -802,6 +859,7 @@ function endSession() {
   stopSafeTimer()
   poseRunning=false
   stopTMLoop()  // ← stop TM inference
+  stopHydration()  // ← stop hydration reminders
   if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null }
 
   const acc = session.totalRounds > 0 
@@ -1074,6 +1132,7 @@ document.getElementById('btn-stop').addEventListener('click', () => {
   stopSafeTimer()
   poseRunning = false
   stopTMLoop()
+  stopHydration()
   if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null }
   if (video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop())
   endSession()
@@ -1088,6 +1147,7 @@ document.getElementById('btn-again').addEventListener('click', () => {
   // Reset TM state for next session
   tmReady = false; tmModel = null; tmEnabled = false
   stopTMLoop()
+  stopHydration()
   setupScreen.classList.add('active')
 })
 
