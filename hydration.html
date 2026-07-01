@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hydration Plan — Shuttlestepz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent: #39e07a;
+    --accent-dim: #1f8a4d;
+    --bg: #0a1410;
+    --bg-elevated: #101f18;
+    --bg-card: #142920;
+    --border: #1e3a2c;
+    --text: #eafaf1;
+    --text-dim: #7fa896;
+    --danger: #ff6b6b;
+    --font-display: 'Sora', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    padding: 32px 20px 80px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+
+  header { margin-bottom: 32px; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 8px;
+  }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+  .subtitle { color: var(--text-dim); font-size: 14px; margin-top: 6px; }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    font-family: var(--font-mono);
+  }
+  input[type="number"] {
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 15px;
+  }
+  input[type="number"]:focus { outline: none; border-color: var(--accent); }
+
+  .segmented {
+    display: flex;
+    gap: 8px;
+  }
+  .segmented button {
+    flex: 1;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 10px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .segmented button.active {
+    background: rgba(57, 224, 122, 0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .calc-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #06150c;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 24px;
+    transition: transform 0.1s ease;
+  }
+  .calc-btn:active { transform: scale(0.98); }
+
+  /* Signature element: droplet gauge */
+  #result { display: none; }
+  .gauge-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .droplet-wrap { position: relative; width: 90px; height: 110px; flex-shrink: 0; }
+  .droplet-fill {
+    transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .total-label { font-family: var(--font-mono); }
+  .total-label .num { font-size: 32px; font-weight: 700; color: var(--accent); display: block; }
+  .total-label .unit { font-size: 12px; color: var(--text-dim); }
+
+  .stage {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  .stage:first-of-type { border-top: none; }
+  .stage-label { font-size: 14px; }
+  .stage-label .when { display: block; font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 2px; }
+  .stage-value { font-family: var(--font-mono); font-size: 16px; color: var(--accent); font-weight: 500; }
+
+  .heat-note {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .reminder-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 0;
+  }
+  .reminder-toggle span { font-size: 14px; }
+  .switch {
+    width: 44px;
+    height: 24px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .switch.on { background: var(--accent-dim); border-color: var(--accent); }
+  .switch::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    top: 2px; left: 2px;
+    transition: all 0.2s ease;
+  }
+  .switch.on::after { background: var(--accent); left: 22px; }
+
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bg-card);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Shuttlestepz</span>
+    <h1>Hydration plan</h1>
+    <p class="subtitle">Fluid targets for before, during, and after your session.</p>
+  </header>
+
+  <div class="card">
+    <div class="field">
+      <label for="weight">Body weight (kg)</label>
+      <input type="number" id="weight" placeholder="e.g. 65" min="1">
+    </div>
+    <div class="field">
+      <label for="duration">Session duration (minutes)</label>
+      <input type="number" id="duration" placeholder="e.g. 45" min="1">
+    </div>
+    <div class="field">
+      <label>Intensity</label>
+      <div class="segmented" id="intensity-group">
+        <button data-value="light">Light</button>
+        <button data-value="moderate" class="active">Moderate</button>
+        <button data-value="intense">Intense</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="temp">Ambient temperature — optional (°C)</label>
+      <input type="number" id="temp" placeholder="e.g. 34">
+    </div>
+    <button class="calc-btn" id="calc-btn">Build my plan</button>
+  </div>
+
+  <div class="card" id="result">
+    <div class="gauge-row">
+      <div class="droplet-wrap">
+        <svg viewBox="0 0 90 110" width="90" height="110">
+          <defs>
+            <clipPath id="dropClip">
+              <path d="M45 4 C45 4 82 52 82 76 C82 95 65.5 108 45 108 C24.5 108 8 95 8 76 C8 52 45 4 45 4 Z"/>
+            </clipPath>
+          </defs>
+          <path d="M45 4 C45 4 82 52 82 76 C82 95 65.5 108 45 108 C24.5 108 8 95 8 76 C8 52 45 4 45 4 Z"
+                fill="none" stroke="#1e3a2c" stroke-width="2"/>
+          <g clip-path="url(#dropClip)">
+            <rect id="dropFill" class="droplet-fill" x="0" y="110" width="90" height="0" fill="#39e07a"/>
+          </g>
+        </svg>
+      </div>
+      <div class="total-label">
+        <span class="num" id="total-ml">0</span>
+        <span class="unit">ml total fluid target</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-label">Pre-session<span class="when">2–3 hrs before</span></div>
+      <div class="stage-value" id="pre-ml">—</div>
+    </div>
+    <div class="stage">
+      <div class="stage-label">During session<span class="when" id="during-when">every 20 min</span></div>
+      <div class="stage-value" id="during-ml">—</div>
+    </div>
+    <div class="stage">
+      <div class="stage-label">Post-session<span class="when">within 30 min after</span></div>
+      <div class="stage-value" id="post-ml">—</div>
+    </div>
+
+    <div class="reminder-toggle">
+      <span>Remind me during my next session</span>
+      <div class="switch" id="reminder-switch"></div>
+    </div>
+
+    <p class="heat-note" id="heat-note" style="display:none;"></p>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="hydration.js"></script>
+<script>
+  let currentIntensity = 'moderate';
+  let currentPlan = null;
+  let reminderOn = false;
+  let reminderInstance = null;
+
+  document.getElementById('intensity-group').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#intensity-group button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentIntensity = btn.dataset.value;
+  });
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3500);
+  }
+
+  document.getElementById('calc-btn').addEventListener('click', () => {
+    const weightKg = parseFloat(document.getElementById('weight').value);
+    const durationMin = parseFloat(document.getElementById('duration').value);
+    const tempVal = document.getElementById('temp').value;
+    const tempC = tempVal ? parseFloat(tempVal) : undefined;
+
+    if (!weightKg || !durationMin) {
+      showToast('Enter weight and duration first');
+      return;
+    }
+
+    const plan = HydrationEngine.calculateHydrationPlan({
+      weightKg, durationMin, intensity: currentIntensity, tempC
+    });
+    currentPlan = plan;
+
+    document.getElementById('total-ml').textContent = plan.totalMl;
+    document.getElementById('pre-ml').textContent = plan.preMl + ' ml';
+    document.getElementById('during-ml').textContent = plan.duringPerIntervalMl + ' ml';
+    document.getElementById('during-when').textContent = `every ${plan.duringIntervalMin} min`;
+    document.getElementById('post-ml').textContent = plan.postMl + ' ml';
+
+    // Fill the droplet gauge — scale against a reasonable max (3000ml) for visual range
+    const fillPct = Math.min(1, plan.totalMl / 3000);
+    const fillHeight = 106 * fillPct;
+    const dropFill = document.getElementById('dropFill');
+    dropFill.setAttribute('y', 110 - fillHeight);
+    dropFill.setAttribute('height', fillHeight);
+
+    const heatNote = document.getElementById('heat-note');
+    if (tempC && tempC >= 30) {
+      heatNote.style.display = 'block';
+      heatNote.textContent = `Targets increased for ${tempC}°C ambient heat.`;
+    } else {
+      heatNote.style.display = 'none';
+    }
+
+    document.getElementById('result').style.display = 'block';
+
+    // Restart reminders against the new plan if they were already on
+    if (reminderOn) startReminders();
+  });
+
+  function startReminders() {
+    if (!currentPlan) return;
+    if (reminderInstance) reminderInstance.stop();
+    reminderInstance = new HydrationEngine.HydrationReminder(currentPlan, (message) => showToast(message));
+    reminderInstance.start();
+  }
+
+  function stopReminders() {
+    if (reminderInstance) reminderInstance.stop();
+  }
+
+  document.getElementById('reminder-switch').addEventListener('click', function () {
+    reminderOn = !reminderOn;
+    this.classList.toggle('on', reminderOn);
+    if (reminderOn) {
+      if (!currentPlan) { showToast('Build your plan first'); reminderOn = false; this.classList.remove('on'); return; }
+      startReminders();
+      showToast('Reminders on for this session');
+    } else {
+      stopReminders();
+    }
+  });
+</script>
+</body>
+</html>
