@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Plans — Shuttlestepz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="icon" type="image/png" href="favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -124,6 +125,13 @@
     background: rgba(57, 224, 122, 0.12);
     border-color: var(--accent);
     color: var(--accent);
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 6px;
+    font-family: var(--font-mono);
   }
 
   .calc-btn {
@@ -302,6 +310,15 @@
           <button data-value="gain">Gain</button>
         </div>
       </div>
+      <div class="field">
+        <label>Sweat rate</label>
+        <div class="segmented" id="d-sweat-group">
+          <button data-value="light">Light</button>
+          <button data-value="normal" class="active">Normal</button>
+          <button data-value="heavy">Heavy — I sweat a lot</button>
+        </div>
+        <p class="field-hint">Affects your sodium/electrolyte target below.</p>
+      </div>
       <button class="calc-btn" id="d-calc-btn">Build my diet plan</button>
     </div>
 
@@ -322,7 +339,11 @@
         <div class="macro-name">Fat<span class="sub">hormone & joint health</span></div>
         <div class="macro-value" id="d-fat">—</div>
       </div>
-      <p class="plan-note">Based on Mifflin-St Jeor BMR scaled to training frequency. General guidance, not individualized nutrition advice — check with a sports dietitian for specific medical or performance needs.</p>
+      <div class="macro-row">
+        <div class="macro-name">Sodium<span class="sub">electrolyte replacement</span></div>
+        <div class="macro-value" id="d-sodium">—</div>
+      </div>
+      <p class="plan-note">Based on Mifflin-St Jeor BMR scaled to training frequency, with sodium guidance adjusted for your sweat rate. General guidance, not individualized nutrition advice — check with a sports dietitian for specific medical or performance needs.</p>
     </div>
   </div>
 
@@ -344,6 +365,15 @@
           <button data-value="moderate" class="active">Moderate</button>
           <button data-value="intense">Intense</button>
         </div>
+      </div>
+      <div class="field">
+        <label>Sweat rate</label>
+        <div class="segmented" id="h-sweat-group">
+          <button data-value="light">Light</button>
+          <button data-value="normal" class="active">Normal</button>
+          <button data-value="heavy">Heavy — I sweat a lot</button>
+        </div>
+        <p class="field-hint">Heavy sweaters need more fluid than intensity alone predicts.</p>
       </div>
       <div class="field">
         <label for="h-temp">Ambient temperature — optional (°C)</label>
@@ -428,7 +458,6 @@
 <div id="toast"></div>
 
 <script src="/Badminton-AI-trainer_V2/js/plans.js"></script>
-  
 <script>
   function showToast(message) {
     const toast = document.getElementById('toast');
@@ -464,6 +493,7 @@
   // ══════════════ DIET LOGIC ══════════════
   const getDietSex = wireSegmented('d-sex-group');
   const getDietGoal = wireSegmented('d-goal-group');
+  const getDietSweat = wireSegmented('d-sweat-group');
 
   document.getElementById('d-calc-btn').addEventListener('click', () => {
     const weightKg = parseFloat(document.getElementById('d-weight').value);
@@ -480,18 +510,21 @@
       weightKg, heightCm, age,
       sex: getDietSex(),
       trainingDaysPerWeek,
-      goal: getDietGoal()
+      goal: getDietGoal(),
+      sweatRate: getDietSweat()
     });
 
     document.getElementById('d-total-cal').textContent = plan.targetCalories;
     document.getElementById('d-protein').textContent = plan.macros.proteinG + ' g';
     document.getElementById('d-carbs').textContent = plan.macros.carbG + ' g';
     document.getElementById('d-fat').textContent = plan.macros.fatG + ' g';
+    document.getElementById('d-sodium').textContent = plan.macros.sodiumMg + ' mg';
     document.getElementById('d-result').style.display = 'block';
   });
 
   // ══════════════ HYDRATION LOGIC ══════════════
   const getHydrationIntensity = wireSegmented('h-intensity-group');
+  const getHydrationSweat = wireSegmented('h-sweat-group');
   let currentHydrationPlan = null;
   let hydrationReminderOn = false;
   let hydrationReminderInstance = null;
@@ -508,7 +541,8 @@
     }
 
     const plan = HydrationEngine.calculateHydrationPlan({
-      weightKg, durationMin, intensity: getHydrationIntensity(), tempC
+      weightKg, durationMin, intensity: getHydrationIntensity(), tempC,
+      sweatRate: getHydrationSweat()
     });
     currentHydrationPlan = plan;
 
