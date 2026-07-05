@@ -268,6 +268,18 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
   box-shadow: 0 8px 32px rgba(0,0,0,.4);
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* NEW: prev-plans + charts */
+.prev-plans{display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;padding-bottom:4px}
+.prev-plans::-webkit-scrollbar{height:4px}
+.prev-plans::-webkit-scrollbar-thumb{background:var(--bg-4);border-radius:99px}
+.prev-chip{flex-shrink:0;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);font-family:var(--font-mono);font-size:11px;padding:8px 12px;border-radius:10px;cursor:pointer;white-space:nowrap;transition:all var(--trans)}
+.prev-chip:hover{border-color:var(--accent);color:var(--accent)}
+.prev-chip-empty{font-family:var(--font-mono);font-size:11.5px;color:var(--text-3);padding:8px 0}
+.chart-wrap{margin-bottom:20px;display:flex;align-items:center;justify-content:center}
+.chart-legend{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:12px}
+.chart-legend-item{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-2);font-family:var(--font-mono)}
+.chart-legend-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -285,6 +297,7 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
   </div>
 
   <div class="tab-panel active" id="panel-diet">
+    <div class="prev-plans" id="d-prev-plans"></div>
     <div class="card">
       <div class="field">
         <label for="d-weight">Body weight (kg)</label>
@@ -330,6 +343,8 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
     </div>
 
     <div class="card result-card" id="d-result">
+      <div class="chart-wrap"><canvas id="d-chart" width="220" height="220"></canvas></div>
+      <div class="chart-legend" id="d-chart-legend"></div>
       <div class="macro-total">
         <span class="num" id="d-total-cal">0</span>
         <span class="unit">kcal / day target</span>
@@ -355,6 +370,7 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
   </div>
 
   <div class="tab-panel" id="panel-hydration">
+    <div class="prev-plans" id="h-prev-plans"></div>
     <div class="card">
       <div class="field">
         <label for="h-weight">Body weight (kg)</label>
@@ -389,6 +405,7 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
     </div>
 
     <div class="card result-card" id="h-result">
+      <div class="chart-wrap"><canvas id="h-chart" width="320" height="160"></canvas></div>
       <div class="gauge-row">
         <div class="droplet-wrap">
           <svg viewBox="0 0 90 110" width="90" height="110">
@@ -429,6 +446,7 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
   </div>
 
   <div class="tab-panel" id="panel-workout">
+    <div class="prev-plans" id="w-prev-plans"></div>
     <div class="card">
       <div class="field">
         <label>Goal</label>
@@ -454,6 +472,7 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
     </div>
 
     <div class="card result-card" id="w-result">
+      <div class="chart-wrap"><canvas id="w-chart" width="320" height="160"></canvas></div>
       <div id="w-days-container"></div>
       <p class="plan-note" id="w-note"></p>
     </div>
@@ -503,6 +522,7 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
   }
   function renderHistoryChips(containerId, docs, onLoad) {
     const el = document.getElementById(containerId);
+    if (!el) return;
     if (!docs.length) { el.innerHTML = '<div class="prev-chip-empty">No previous plans yet — build one below.</div>'; return; }
     el.innerHTML = docs.map((d, i) => `<button class="prev-chip" data-idx="${i}">${fmtChipDate(d.createdAt)}</button>`).join('');
     el.querySelectorAll('.prev-chip').forEach(chip => {
@@ -513,6 +533,7 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
   // ---------- CANVAS CHART HELPERS ----------
   function drawPieChart(canvasId, legendId, segments) {
     const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
@@ -535,13 +556,16 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
     ctx.fill();
 
     const legend = document.getElementById(legendId);
-    legend.innerHTML = segments.map(s =>
-      `<div class="chart-legend-item"><span class="chart-legend-dot" style="background:${s.color}"></span>${s.label} · ${Math.round((s.value/total)*100)}%</div>`
-    ).join('');
+    if (legend) {
+      legend.innerHTML = segments.map(s =>
+        `<div class="chart-legend-item"><span class="chart-legend-dot" style="background:${s.color}"></span>${s.label} · ${Math.round((s.value/total)*100)}%</div>`
+      ).join('');
+    }
   }
 
   function drawBarChart(canvasId, bars) {
     const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
@@ -559,7 +583,7 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
       grad.addColorStop(1, '#39e07a');
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.roundRect ? ctx.roundRect(x, y, barW, h, 4) : ctx.rect(x, y, barW, h);
+      if (ctx.roundRect) ctx.roundRect(x, y, barW, h, 4); else ctx.rect(x, y, barW, h);
       ctx.fill();
 
       ctx.fillStyle = '#eaf0eb';
@@ -593,6 +617,29 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
     ]);
   }
 
+  document.getElementById('d-calc-btn').addEventListener('click', async () => {
+    const weightKg = parseFloat(document.getElementById('d-weight').value);
+    const heightCm = parseFloat(document.getElementById('d-height').value);
+    const age = parseFloat(document.getElementById('d-age').value);
+    const trainingDaysPerWeek = parseFloat(document.getElementById('d-days').value) || 0;
+
+    if (!weightKg || !heightCm || !age) {
+      showToast('Enter weight, height, and age first');
+      return;
+    }
+
+    const plan = DietEngine.calculateDietPlan({
+      weightKg, heightCm, age,
+      sex: getDietSex(),
+      trainingDaysPerWeek,
+      goal: getDietGoal(),
+      sweatRate: getDietSweat()
+    });
+
+    renderDietResult(plan);
+    try { await DB.savePlan('diet', plan); } catch (e) { console.error(e); showToast('Could not save plan'); }
+  });
+
   // ---------- HYDRATION ----------
   const getHydrationIntensity = wireSegmented('h-intensity-group');
   const getHydrationSweat = wireSegmented('h-sweat-group');
@@ -622,6 +669,28 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
       { label: 'Post', value: plan.postMl }
     ]);
   }
+
+  document.getElementById('h-calc-btn').addEventListener('click', async () => {
+    const weightKg = parseFloat(document.getElementById('h-weight').value);
+    const durationMin = parseFloat(document.getElementById('h-duration').value);
+    const tempVal = document.getElementById('h-temp').value;
+    const tempC = tempVal ? parseFloat(tempVal) : undefined;
+
+    if (!weightKg || !durationMin) {
+      showToast('Enter weight and duration first');
+      return;
+    }
+
+    const plan = HydrationEngine.calculateHydrationPlan({
+      weightKg, durationMin, intensity: getHydrationIntensity(), tempC,
+      sweatRate: getHydrationSweat()
+    });
+
+    renderHydrationResult(plan);
+    try { await DB.savePlan('hydration', plan); } catch (e) { console.error(e); showToast('Could not save plan'); }
+
+    if (hydrationReminderOn) startHydrationReminders();
+  });
 
   function startHydrationReminders() {
     if (!currentHydrationPlan) return;
@@ -675,7 +744,24 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
     })));
   }
 
-  // ---------- AUTH GATE + WIRING ----------
+  document.getElementById('w-calc-btn').addEventListener('click', async () => {
+    const daysPerWeek = parseFloat(document.getElementById('w-days').value);
+    if (!daysPerWeek) {
+      showToast('Enter training days per week first');
+      return;
+    }
+
+    const plan = WorkoutEngine.generatePlan({
+      goal: getWorkoutGoal(),
+      daysPerWeek,
+      level: getWorkoutLevel()
+    });
+
+    renderWorkoutResult(plan);
+    try { await DB.savePlan('workout', plan); } catch (e) { console.error(e); showToast('Could not save plan'); }
+  });
+
+  // ---------- AUTH GATE: load history once logged in ----------
   DB.onAuthReady((user) => {
     if (!user) { window.location.href = '/Badminton-AI-trainer_V2/login.html'; return; }
 
@@ -698,68 +784,6 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
         renderWorkoutResult(entry.data);
         showToast('Loaded plan from ' + fmtChipDate(entry.createdAt));
       });
-    });
-
-    document.getElementById('d-calc-btn').addEventListener('click', async () => {
-      const weightKg = parseFloat(document.getElementById('d-weight').value);
-      const heightCm = parseFloat(document.getElementById('d-height').value);
-      const age = parseFloat(document.getElementById('d-age').value);
-      const trainingDaysPerWeek = parseFloat(document.getElementById('d-days').value) || 0;
-
-      if (!weightKg || !heightCm || !age) {
-        showToast('Enter weight, height, and age first');
-        return;
-      }
-
-      const plan = DietEngine.calculateDietPlan({
-        weightKg, heightCm, age,
-        sex: getDietSex(),
-        trainingDaysPerWeek,
-        goal: getDietGoal(),
-        sweatRate: getDietSweat()
-      });
-
-      renderDietResult(plan);
-      try { await DB.savePlan('diet', plan); } catch (e) { console.error(e); showToast('Could not save plan'); }
-    });
-
-    document.getElementById('h-calc-btn').addEventListener('click', async () => {
-      const weightKg = parseFloat(document.getElementById('h-weight').value);
-      const durationMin = parseFloat(document.getElementById('h-duration').value);
-      const tempVal = document.getElementById('h-temp').value;
-      const tempC = tempVal ? parseFloat(tempVal) : undefined;
-
-      if (!weightKg || !durationMin) {
-        showToast('Enter weight and duration first');
-        return;
-      }
-
-      const plan = HydrationEngine.calculateHydrationPlan({
-        weightKg, durationMin, intensity: getHydrationIntensity(), tempC,
-        sweatRate: getHydrationSweat()
-      });
-
-      renderHydrationResult(plan);
-      try { await DB.savePlan('hydration', plan); } catch (e) { console.error(e); showToast('Could not save plan'); }
-
-      if (hydrationReminderOn) startHydrationReminders();
-    });
-
-    document.getElementById('w-calc-btn').addEventListener('click', async () => {
-      const daysPerWeek = parseFloat(document.getElementById('w-days').value);
-      if (!daysPerWeek) {
-        showToast('Enter training days per week first');
-        return;
-      }
-
-      const plan = WorkoutEngine.generatePlan({
-        goal: getWorkoutGoal(),
-        daysPerWeek,
-        level: getWorkoutLevel()
-      });
-
-      renderWorkoutResult(plan);
-      try { await DB.savePlan('workout', plan); } catch (e) { console.error(e); showToast('Could not save plan'); }
     });
   });
 </script>
