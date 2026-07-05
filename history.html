@@ -103,6 +103,10 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 .anim-d1{animation-delay:.07s}.anim-d2{animation-delay:.14s}.anim-d3{animation-delay:.21s}
 
 @media(max-width:600px){.main{padding:22px 14px 60px}.page-title{font-size:20px}.stats-row{grid-template-columns:1fr 1fr}.topbar-xp{display:none}.btn-topbar-train span{display:none}.btn-topbar-train{padding:9px 12px}}
+.pa-toggle-group,.pa-metric-group{display:flex;gap:6px;flex-wrap:wrap}
+.pa-toggle,.pa-metric{background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);font-family:'Sora',sans-serif;font-size:11.5px;font-weight:600;padding:7px 13px;border-radius:20px;cursor:pointer;transition:all var(--trans);white-space:nowrap}
+.pa-toggle:hover,.pa-metric:hover{border-color:var(--border-2);color:var(--text)}
+.pa-toggle.active,.pa-metric.active{background:var(--accent-dim);border-color:rgba(57,224,122,.3);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -192,6 +196,24 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
     <div class="stat-card anim-up anim-d3"><div class="stat-val" id="h-avg-score">—</div><div class="stat-lbl">Avg Score</div></div>
   </div>
 
+  <div id="progress-analysis" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 16px;margin-bottom:16px;display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    <div style="font-size:10.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--text-3)">📊 Progress Analysis</div>
+    <div class="pa-toggle-group" id="pa-period-toggle">
+      <button class="pa-toggle active" data-period="weekly">Weekly</button>
+      <button class="pa-toggle" data-period="monthly">Monthly</button>
+    </div>
+  </div>
+  <div class="pa-metric-group" id="pa-metric-toggle">
+    <button class="pa-metric active" data-metric="overall">Overall</button>
+    <button class="pa-metric" data-metric="reaction">Reaction Time</button>
+    <button class="pa-metric" data-metric="splitstep">Split Step</button>
+    <button class="pa-metric" data-metric="technique">Technique</button>
+  </div>
+  <canvas id="pa-graph" height="140" style="width:100%;display:block;border-radius:6px;margin-top:14px"></canvas>
+  <div id="pa-summary" style="margin-top:14px;font-size:13px;color:var(--text-2);line-height:1.6"></div>
+</div>
+
   <div id="score-graph-wrap">
     <div style="font-size:10.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--text-3);margin-bottom:14px">📈 Score Over Time</div>
     <canvas id="score-graph" height="140" style="width:100%;display:block;border-radius:6px"></canvas>
@@ -277,6 +299,93 @@ function drawGraph(sessions){
   pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,3.5,0,Math.PI*2);ctx.fillStyle='#39e07a';ctx.fill();ctx.strokeStyle='#111f14';ctx.lineWidth=2;ctx.stroke()})
 }
 
+const METRIC_CONFIG={
+  overall:{label:'Overall Score',key:s=>s.score!=null?s.score:Math.round(((s.hits||0)/(s.totalRounds||1))*100),lowerBetter:false,unit:'pts'},
+  reaction:{label:'Reaction Time',key:s=>s.reactionTime??s.avgReactionTime??s.reaction_time,lowerBetter:true,unit:'ms'},
+  splitstep:{label:'Split Step',key:s=>s.splitStepScore??s.splitStepAccuracy??s.splitstep,lowerBetter:false,unit:'%'},
+  technique:{label:'Technique',key:s=>s.techniqueScore??s.technique,lowerBetter:false,unit:'%'}
+}
+
+let paState={period:'weekly',metric:'overall',sessions:[]}
+
+function periodKey(date,period){
+  const d=date.toDate?date.toDate():new Date(date)
+  if(period==='monthly')return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')
+  const onejan=new Date(d.getFullYear(),0,1)
+  const week=Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7)
+  return d.getFullYear()+'-W'+String(week).padStart(2,'0')
+}
+
+function aggregate(sessions,period,metric){
+  const cfg=METRIC_CONFIG[metric]
+  const groups={}
+  sessions.forEach(s=>{
+    if(!s.createdAt)return
+    const v=cfg.key(s)
+    if(v==null||isNaN(v))return
+    const k=periodKey(s.createdAt,period)
+    if(!groups[k])groups[k]={sum:0,count:0}
+    groups[k].sum+=v;groups[k].count++
+  })
+  return Object.keys(groups).sort().map(k=>({label:k,avg:groups[k].sum/groups[k].count}))
+}
+
+function drawPaGraph(points,cfg){
+  const canvas=$('pa-graph')
+  if(!canvas)return
+  if(points.length<2){canvas.style.display='none';return}
+  canvas.style.display='block'
+  const dpr=window.devicePixelRatio||1,W=canvas.offsetWidth||520,H=140
+  canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px'
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H)
+  const pL=16,pR=16,pT=14,pB=14,cW=W-pL-pR,cH=H-pT-pB
+  const vals=points.map(p=>p.avg)
+  const minV=Math.min(...vals),maxV=Math.max(...vals)||1,range=(maxV-minV)||1
+  ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1
+  for(let i=0;i<=3;i++){const y=pT+(cH/3)*i;ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(W-pR,y);ctx.stroke()}
+  const pts=vals.map((v,i)=>({x:pL+(i/(vals.length-1))*cW,y:pT+(1-(v-minV)/range)*cH}))
+  const grad=ctx.createLinearGradient(0,pT,0,pT+cH)
+  grad.addColorStop(0,'rgba(57,224,122,0.2)');grad.addColorStop(1,'rgba(57,224,122,0.01)')
+  ctx.beginPath();ctx.moveTo(pts[0].x,pT+cH);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(pts[pts.length-1].x,pT+cH);ctx.closePath();ctx.fillStyle=grad;ctx.fill()
+  ctx.beginPath();ctx.strokeStyle='#39e07a';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.lineCap='round'
+  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke()
+  pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,3.5,0,Math.PI*2);ctx.fillStyle='#39e07a';ctx.fill();ctx.strokeStyle='#111f14';ctx.lineWidth=2;ctx.stroke()})
+}
+
+function renderSummary(points,cfg){
+  const el=$('pa-summary')
+  if(!el)return
+  if(points.length<2){el.textContent="Keep training — once you have a couple of weeks of sessions, we'll show how much you've improved.";return}
+  const first=points[0].avg,last=points[points.length-1].avg
+  let deltaPct=((last-first)/(first||1))*100
+  if(cfg.lowerBetter)deltaPct=-deltaPct
+  const improved=deltaPct>=0
+  const arrow=improved?'📈':'📉'
+  const word=improved?'improved':'dropped'
+  el.innerHTML=`${arrow} Your <b style="color:var(--accent)">${cfg.label}</b> has ${word} <b style="color:${improved?'var(--accent)':'var(--danger)'}">${Math.abs(deltaPct).toFixed(1)}%</b> since you joined ShuttleStepz — from ${first.toFixed(1)}${cfg.unit} to ${last.toFixed(1)}${cfg.unit}.`
+}
+
+function renderProgressAnalysis(){
+  const wrap=$('progress-analysis')
+  if(!paState.sessions.length){if(wrap)wrap.style.display='none';return}
+  wrap.style.display='block'
+  const cfg=METRIC_CONFIG[paState.metric]
+  const points=aggregate(paState.sessions,paState.period,paState.metric)
+  requestAnimationFrame(()=>drawPaGraph(points,cfg))
+  renderSummary(points,cfg)
+}
+
+document.getElementById('pa-period-toggle')?.addEventListener('click',e=>{
+  const btn=e.target.closest('.pa-toggle');if(!btn)return
+  document.querySelectorAll('#pa-period-toggle .pa-toggle').forEach(b=>b.classList.remove('active'))
+  btn.classList.add('active');paState.period=btn.dataset.period;renderProgressAnalysis()
+})
+document.getElementById('pa-metric-toggle')?.addEventListener('click',e=>{
+  const btn=e.target.closest('.pa-metric');if(!btn)return
+  document.querySelectorAll('#pa-metric-toggle .pa-metric').forEach(b=>b.classList.remove('active'))
+  btn.classList.add('active');paState.metric=btn.dataset.metric;renderProgressAnalysis()
+})
+  
 DB.onAuthReady(async(user)=>{
   if(!user){window.location.href='/Badminton-AI-trainer_V2/login.html';return}
   try{
@@ -301,6 +410,8 @@ DB.onAuthReady(async(user)=>{
       tx('h-total-xp',totalXP.toLocaleString()+' XP')
       tx('h-best-streak',bestStr+'🔥')
       tx('h-avg-score',sessions.length?avgScore:'—')
+      paState.sessions=sessions
+      renderProgressAnalysis()
       requestAnimationFrame(()=>drawGraph(sessions))
     },500)
   }catch(e){console.error(e)}
