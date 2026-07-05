@@ -326,6 +326,50 @@ export async function deleteSession(sessionId) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   6b. PLANS (diet / hydration / workout)
+═══════════════════════════════════════════════════════════════ */
+
+export async function savePlan(planType, planData) {
+  const uid = _requireUID()
+  const ref = await addDoc(collection(db, 'plans', uid, planType), {
+    data      : planData,
+    createdAt : serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function getPlans(planType, { uid = null, limitN = 10 } = {}) {
+  const id = uid || _requireUID()
+  const q = query(
+    collection(db, 'plans', id, planType),
+    orderBy('createdAt', 'desc'),
+    limit(limitN)
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
+export function listenPlans(planType, callback, limitN = 10) {
+  const uid = _requireUID()
+  _teardown('plans_' + planType)
+  const q = query(
+    collection(db, 'plans', uid, planType),
+    orderBy('createdAt', 'desc'),
+    limit(limitN)
+  )
+  const unsub = onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  })
+  _unsubscribers['plans_' + planType] = unsub
+  return unsub
+}
+
+export async function deletePlan(planType, planId) {
+  const uid = _requireUID()
+  await deleteDoc(doc(db, 'plans', uid, planType, planId))
+}
+
+/* ═══════════════════════════════════════════════════════════════
    7. LEADERBOARD
 ═══════════════════════════════════════════════════════════════ */
 
@@ -565,6 +609,7 @@ export default {
   searchUsersByUsername, sendFriendRequest, respondToFriendRequest,
   listenFriendRequests, listenFriends, getFriendshipStatus,
   sendMessage, listenChat, listenMyChats, clearChat, deleteChat,savePushSubscription, removePushSubscription, getLastSessionTime,
+  savePlan, getPlans, listenPlans, deletePlan,
 }
 
 /* ═══════════════════════════════════════════════════════════════
