@@ -463,7 +463,9 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
 <div id="toast"></div>
 
 <script src="/Badminton-AI-trainer_V2/js/plans.js"></script>
-<script>
+<script type="module">
+  import DB from '/Badminton-AI-trainer_V2/js/database.js'
+
   function showToast(message) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -493,60 +495,113 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
     return () => current;
   }
 
+  // ---------- PREV-PLANS HISTORY (Firestore) ----------
+  function fmtChipDate(ts) {
+    const d = ts?.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' +
+           d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  }
+  function renderHistoryChips(containerId, docs, onLoad) {
+    const el = document.getElementById(containerId);
+    if (!docs.length) { el.innerHTML = '<div class="prev-chip-empty">No previous plans yet — build one below.</div>'; return; }
+    el.innerHTML = docs.map((d, i) => `<button class="prev-chip" data-idx="${i}">${fmtChipDate(d.createdAt)}</button>`).join('');
+    el.querySelectorAll('.prev-chip').forEach(chip => {
+      chip.addEventListener('click', () => onLoad(docs[+chip.dataset.idx]));
+    });
+  }
+
+  // ---------- CANVAS CHART HELPERS ----------
+  function drawPieChart(canvasId, legendId, segments) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    const total = segments.reduce((a, s) => a + s.value, 0) || 1;
+    const cx = W / 2, cy = H / 2, r = Math.min(W, H) / 2 - 8;
+    let start = -Math.PI / 2;
+    segments.forEach(seg => {
+      const angle = (seg.value / total) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, start, start + angle);
+      ctx.closePath();
+      ctx.fillStyle = seg.color;
+      ctx.fill();
+      start += angle;
+    });
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2);
+    ctx.fillStyle = '#0f1315';
+    ctx.fill();
+
+    const legend = document.getElementById(legendId);
+    legend.innerHTML = segments.map(s =>
+      `<div class="chart-legend-item"><span class="chart-legend-dot" style="background:${s.color}"></span>${s.label} · ${Math.round((s.value/total)*100)}%</div>`
+    ).join('');
+  }
+
+  function drawBarChart(canvasId, bars) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    const pad = 28, gap = 14;
+    const chartH = H - pad - 20;
+    const barW = (W - pad * 2 - gap * (bars.length - 1)) / bars.length;
+    const maxV = Math.max(...bars.map(b => b.value), 1);
+
+    bars.forEach((b, i) => {
+      const x = pad + i * (barW + gap);
+      const h = (b.value / maxV) * chartH;
+      const y = pad + (chartH - h);
+      const grad = ctx.createLinearGradient(0, y, 0, y + h);
+      grad.addColorStop(0, '#60eba0');
+      grad.addColorStop(1, '#39e07a');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(x, y, barW, h, 4) : ctx.rect(x, y, barW, h);
+      ctx.fill();
+
+      ctx.fillStyle = '#eaf0eb';
+      ctx.font = '11px "DM Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(b.value, x + barW / 2, y - 6);
+
+      ctx.fillStyle = '#7a9080';
+      ctx.font = '10px "Sora", sans-serif';
+      ctx.fillText(b.label, x + barW / 2, H - 6);
+    });
+  }
+
+  // ---------- DIET ----------
   const getDietSex = wireSegmented('d-sex-group');
   const getDietGoal = wireSegmented('d-goal-group');
   const getDietSweat = wireSegmented('d-sweat-group');
 
-  document.getElementById('d-calc-btn').addEventListener('click', () => {
-    const weightKg = parseFloat(document.getElementById('d-weight').value);
-    const heightCm = parseFloat(document.getElementById('d-height').value);
-    const age = parseFloat(document.getElementById('d-age').value);
-    const trainingDaysPerWeek = parseFloat(document.getElementById('d-days').value) || 0;
-
-    if (!weightKg || !heightCm || !age) {
-      showToast('Enter weight, height, and age first');
-      return;
-    }
-
-    const plan = DietEngine.calculateDietPlan({
-      weightKg, heightCm, age,
-      sex: getDietSex(),
-      trainingDaysPerWeek,
-      goal: getDietGoal(),
-      sweatRate: getDietSweat()
-    });
-
+  function renderDietResult(plan) {
     document.getElementById('d-total-cal').textContent = plan.targetCalories;
     document.getElementById('d-protein').textContent = plan.macros.proteinG + ' g';
     document.getElementById('d-carbs').textContent = plan.macros.carbG + ' g';
     document.getElementById('d-fat').textContent = plan.macros.fatG + ' g';
     document.getElementById('d-sodium').textContent = plan.macros.sodiumMg + ' mg';
     document.getElementById('d-result').style.display = 'block';
-  });
 
+    drawPieChart('d-chart', 'd-chart-legend', [
+      { label: 'Protein', value: plan.macros.proteinG * 4, color: '#39e07a' },
+      { label: 'Carbs', value: plan.macros.carbG * 4, color: '#60eba0' },
+      { label: 'Fat', value: plan.macros.fatG * 9, color: '#1d2427' }
+    ]);
+  }
+
+  // ---------- HYDRATION ----------
   const getHydrationIntensity = wireSegmented('h-intensity-group');
   const getHydrationSweat = wireSegmented('h-sweat-group');
   let currentHydrationPlan = null;
   let hydrationReminderOn = false;
   let hydrationReminderInstance = null;
 
-  document.getElementById('h-calc-btn').addEventListener('click', () => {
-    const weightKg = parseFloat(document.getElementById('h-weight').value);
-    const durationMin = parseFloat(document.getElementById('h-duration').value);
-    const tempVal = document.getElementById('h-temp').value;
-    const tempC = tempVal ? parseFloat(tempVal) : undefined;
-
-    if (!weightKg || !durationMin) {
-      showToast('Enter weight and duration first');
-      return;
-    }
-
-    const plan = HydrationEngine.calculateHydrationPlan({
-      weightKg, durationMin, intensity: getHydrationIntensity(), tempC,
-      sweatRate: getHydrationSweat()
-    });
+  function renderHydrationResult(plan) {
     currentHydrationPlan = plan;
-
     document.getElementById('h-total-ml').textContent = plan.totalMl;
     document.getElementById('h-pre-ml').textContent = plan.preMl + ' ml';
     document.getElementById('h-during-ml').textContent = plan.duringPerIntervalMl + ' ml';
@@ -561,8 +616,12 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
 
     document.getElementById('h-result').style.display = 'block';
 
-    if (hydrationReminderOn) startHydrationReminders();
-  });
+    drawBarChart('h-chart', [
+      { label: 'Pre', value: plan.preMl },
+      { label: 'During', value: plan.duringTotalMl },
+      { label: 'Post', value: plan.postMl }
+    ]);
+  }
 
   function startHydrationReminders() {
     if (!currentHydrationPlan) return;
@@ -583,22 +642,11 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
     }
   });
 
+  // ---------- WORKOUT ----------
   const getWorkoutGoal = wireSegmented('w-goal-group');
   const getWorkoutLevel = wireSegmented('w-level-group');
 
-  document.getElementById('w-calc-btn').addEventListener('click', () => {
-    const daysPerWeek = parseFloat(document.getElementById('w-days').value);
-    if (!daysPerWeek) {
-      showToast('Enter training days per week first');
-      return;
-    }
-
-    const plan = WorkoutEngine.generatePlan({
-      goal: getWorkoutGoal(),
-      daysPerWeek,
-      level: getWorkoutLevel()
-    });
-
+  function renderWorkoutResult(plan) {
     const container = document.getElementById('w-days-container');
     container.innerHTML = '';
     plan.weeklyPlan.forEach(day => {
@@ -620,6 +668,99 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
 
     document.getElementById('w-note').textContent = plan.note;
     document.getElementById('w-result').style.display = 'block';
+
+    drawBarChart('w-chart', plan.weeklyPlan.map(day => ({
+      label: 'D' + day.day,
+      value: day.exercises.length * day.exercises[0].sets
+    })));
+  }
+
+  // ---------- AUTH GATE + WIRING ----------
+  DB.onAuthReady((user) => {
+    if (!user) { window.location.href = '/Badminton-AI-trainer_V2/login.html'; return; }
+
+    DB.listenPlans('diet', (docs) => {
+      renderHistoryChips('d-prev-plans', docs, (entry) => {
+        renderDietResult(entry.data);
+        showToast('Loaded plan from ' + fmtChipDate(entry.createdAt));
+      });
+    });
+
+    DB.listenPlans('hydration', (docs) => {
+      renderHistoryChips('h-prev-plans', docs, (entry) => {
+        renderHydrationResult(entry.data);
+        showToast('Loaded plan from ' + fmtChipDate(entry.createdAt));
+      });
+    });
+
+    DB.listenPlans('workout', (docs) => {
+      renderHistoryChips('w-prev-plans', docs, (entry) => {
+        renderWorkoutResult(entry.data);
+        showToast('Loaded plan from ' + fmtChipDate(entry.createdAt));
+      });
+    });
+
+    document.getElementById('d-calc-btn').addEventListener('click', async () => {
+      const weightKg = parseFloat(document.getElementById('d-weight').value);
+      const heightCm = parseFloat(document.getElementById('d-height').value);
+      const age = parseFloat(document.getElementById('d-age').value);
+      const trainingDaysPerWeek = parseFloat(document.getElementById('d-days').value) || 0;
+
+      if (!weightKg || !heightCm || !age) {
+        showToast('Enter weight, height, and age first');
+        return;
+      }
+
+      const plan = DietEngine.calculateDietPlan({
+        weightKg, heightCm, age,
+        sex: getDietSex(),
+        trainingDaysPerWeek,
+        goal: getDietGoal(),
+        sweatRate: getDietSweat()
+      });
+
+      renderDietResult(plan);
+      try { await DB.savePlan('diet', plan); } catch (e) { console.error(e); showToast('Could not save plan'); }
+    });
+
+    document.getElementById('h-calc-btn').addEventListener('click', async () => {
+      const weightKg = parseFloat(document.getElementById('h-weight').value);
+      const durationMin = parseFloat(document.getElementById('h-duration').value);
+      const tempVal = document.getElementById('h-temp').value;
+      const tempC = tempVal ? parseFloat(tempVal) : undefined;
+
+      if (!weightKg || !durationMin) {
+        showToast('Enter weight and duration first');
+        return;
+      }
+
+      const plan = HydrationEngine.calculateHydrationPlan({
+        weightKg, durationMin, intensity: getHydrationIntensity(), tempC,
+        sweatRate: getHydrationSweat()
+      });
+
+      renderHydrationResult(plan);
+      try { await DB.savePlan('hydration', plan); } catch (e) { console.error(e); showToast('Could not save plan'); }
+
+      if (hydrationReminderOn) startHydrationReminders();
+    });
+
+    document.getElementById('w-calc-btn').addEventListener('click', async () => {
+      const daysPerWeek = parseFloat(document.getElementById('w-days').value);
+      if (!daysPerWeek) {
+        showToast('Enter training days per week first');
+        return;
+      }
+
+      const plan = WorkoutEngine.generatePlan({
+        goal: getWorkoutGoal(),
+        daysPerWeek,
+        level: getWorkoutLevel()
+      });
+
+      renderWorkoutResult(plan);
+      try { await DB.savePlan('workout', plan); } catch (e) { console.error(e); showToast('Could not save plan'); }
+    });
   });
 </script>
 </body>
