@@ -631,6 +631,7 @@ function togglePicker(type){
   if(type==='emoji'){ep.classList.toggle('show');gp.classList.remove('show')}
   else{gp.classList.toggle('show');ep.classList.remove('show')}
 }
+window.togglePicker = togglePicker
 
 /* ── GIF search (Tenor via GIPHY-like fallback) ── */
 async function searchGifs(q,chatUID){
