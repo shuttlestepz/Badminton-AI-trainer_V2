@@ -553,6 +553,17 @@ export async function deleteUserData(uid) {
     ...recvSnap.docs.map(d => deleteDoc(d.ref)),
   ])
 
+// Delete all chats involving this user (both messages + chat doc)
+  const chatsQ = query(collection(db, 'chats'), where('participants', 'array-contains', uid))
+  const chatsSnap = await getDocs(chatsQ)
+  for (const chatDoc of chatsSnap.docs) {
+    const msgsSnap = await getDocs(collection(db, 'chats', chatDoc.id, 'messages'))
+    const delBatch = writeBatch(db)
+    msgsSnap.docs.forEach(m => delBatch.delete(m.ref))
+    delBatch.delete(chatDoc.ref)
+    await delBatch.commit()
+  }
+
   // Delete user document
   await deleteDoc(doc(db, 'users', uid))
 }
@@ -812,10 +823,12 @@ export function listenMyChats(callback) {
       const data = d.data()
       const otherUid = data.participants.find(p => p !== uid)
       let profile = {}
+      let profileExists = false
       try {
         const lbSnap = await getDoc(doc(db, 'leaderboard', otherUid))
-        if (lbSnap.exists()) profile = lbSnap.data()
+        if (lbSnap.exists()) { profile = lbSnap.data(); profileExists = true }
       } catch(e) {}
+      if (!profileExists) continue // skip chats with deleted/missing users
       chats.push({ id: d.id, otherUid, ...data, profile })
     }
     callback(chats)
