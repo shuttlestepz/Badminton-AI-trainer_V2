@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Plans — Shuttlestepz</title>
-<link rel="icon" href="/Badminton-AI-trainer_V2/favicon.ico">
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -31,6 +31,111 @@ body {
   -webkit-font-smoothing:antialiased;
 }
 .wrap { max-width: 640px; margin: 0 auto; }
+
+/* Topbar */
+.topbar {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 16px;
+}
+.topbar-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color var(--trans);
+  flex-shrink: 0;
+}
+.topbar-btn:hover { border-color: var(--accent); }
+.topbar-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.topbar-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.topbar-page-label {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+/* Nav drawer */
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 9, 7, 0.7);
+  backdrop-filter: blur(3px);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.nav-overlay.open { opacity: 1; pointer-events: auto; }
+
+.nav-drawer {
+  position: fixed;
+  top: 0; left: 0;
+  height: 100%;
+  width: min(280px, 80vw);
+  background: var(--bg-2);
+  border-right: 1px solid var(--border);
+  z-index: 91;
+  transform: translateX(-100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.nav-drawer.open { transform: translateX(0); }
+.nav-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.nav-drawer-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .9px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: background var(--trans);
+}
+.nav-link:hover { background: var(--bg-3); }
+.nav-link.current { background: var(--accent-dim); color: var(--accent); }
+.nav-link .nav-icon { font-size: 16px; width: 20px; text-align: center; }
 
 header { margin-bottom: 24px; }
 .eyebrow {
@@ -283,6 +388,38 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
 </style>
 </head>
 <body>
+
+<div class="topbar">
+  <button class="topbar-btn" id="menu-btn" title="Menu" aria-label="Menu">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+  <img src="favicon.png" alt="Shuttlestepz logo" class="topbar-logo">
+  <span class="topbar-title">Shuttlestepz</span>
+  <span class="topbar-page-label">Planners</span>
+</div>
+
+<div class="nav-overlay" id="nav-overlay"></div>
+<div class="nav-drawer" id="nav-drawer">
+  <div class="nav-drawer-header">
+    <span class="nav-drawer-title">Menu</span>
+    <button class="topbar-btn" id="nav-close-btn" title="Close" aria-label="Close menu">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+  <a href="/Badminton-AI-trainer_V2/dashboard.html" class="nav-link"><span class="nav-icon">🏠</span> Dashboard</a>
+  <a href="/Badminton-AI-trainer_V2/trainer.html" class="nav-link"><span class="nav-icon">🏸</span> Trainer</a>
+  <a href="/Badminton-AI-trainer_V2/plans.html" class="nav-link current"><span class="nav-icon">📋</span> Plans</a>
+  <a href="/Badminton-AI-trainer_V2/profile.html" class="nav-link"><span class="nav-icon">👤</span> Profile</a>
+  <a href="/Badminton-AI-trainer_V2/how-to-use.html" class="nav-link"><span class="nav-icon">❓</span> How to Use</a>
+</div>
+
 <div class="wrap">
   <header>
     <span class="eyebrow">Shuttlestepz</span>
@@ -481,6 +618,15 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
 
 <div id="toast"></div>
 
+<script>
+  const navDrawer = document.getElementById('nav-drawer');
+  const navOverlay = document.getElementById('nav-overlay');
+  function openNav() { navDrawer.classList.add('open'); navOverlay.classList.add('open'); }
+  function closeNav() { navDrawer.classList.remove('open'); navOverlay.classList.remove('open'); }
+  document.getElementById('menu-btn').addEventListener('click', openNav);
+  document.getElementById('nav-close-btn').addEventListener('click', closeNav);
+  navOverlay.addEventListener('click', closeNav);
+</script>
 <script src="/Badminton-AI-trainer_V2/js/plans.js"></script>
 <script type="module">
   import DB from '/Badminton-AI-trainer_V2/js/database.js'
