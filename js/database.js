@@ -123,6 +123,41 @@ export function onAuthReady(callback) {
     window.dispatchEvent(new CustomEvent('ss-auth-change', { detail: { user } }))
     callback(user)
   })
+}export function onAuthReady(callback) {
+  return onAuthStateChanged(auth, async (user) => {
+    currentUser = user
+    if (user) {
+      const snap = await getDoc(doc(db, 'users', user.uid))
+      if (!snap.exists()) {
+        await setDoc(doc(db, 'users', user.uid), {
+          profile: {
+            displayName : user.displayName || user.email,
+            email       : user.email,
+            role        : 'student',
+            schoolCode  : '',
+            plan        : 'free',
+            createdAt   : serverTimestamp(),
+          },
+          xp: 0, level: 1, totalSessions: 0, bestStreak: 0,
+          lastActive: serverTimestamp(),
+          lastReminderStage: 0,
+          settings: { voiceOn:true, beepOn:true, preferredDiff:'medium', preferredGroup:'all' },
+        })
+      } else {
+        await updateDoc(doc(db, 'users', user.uid), {
+          lastActive: serverTimestamp(),
+          lastReminderStage: 0,
+        }).catch(() => {})
+      }
+    }
+    window.dispatchEvent(new CustomEvent('ss-auth-change', { detail: { user } }))
+    callback(user)
+  })
+}
+
+export async function setEmailOptOut(optOut) {
+  const uid = _requireUID()
+  await updateDoc(doc(db, 'users', uid), { emailOptOut: optOut })
 }
 
 export function getCurrentUser() { return currentUser }
@@ -617,7 +652,7 @@ export default {
   getSettings, saveSettings, listenSettings,
   getStudentsBySchoolCode, listenStudentsBySchoolCode,
   unsubscribeAll, unsubscribe, resetUserData, saveAITips, getAITips, deleteUserData,
-  searchUsersByUsername, sendFriendRequest, respondToFriendRequest,
+  setEmailOptOut,   searchUsersByUsername, sendFriendRequest, respondToFriendRequest,
   listenFriendRequests, listenFriends, getFriendshipStatus,
   sendMessage, listenChat, listenMyChats, clearChat, deleteChat,savePushSubscription, removePushSubscription, getLastSessionTime,
   savePlan, getPlans, listenPlans, deletePlan,
