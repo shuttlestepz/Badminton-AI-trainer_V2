@@ -100,29 +100,6 @@ export async function resetPassword(email) {
   }
 }
 
-export function onAuthReady(callback) {
-  return onAuthStateChanged(auth, async (user) => {
-    currentUser = user
-    if (user) {
-      const snap = await getDoc(doc(db, 'users', user.uid))
-      if (!snap.exists()) {
-        await setDoc(doc(db, 'users', user.uid), {
-          profile: {
-            displayName : user.displayName || user.email,
-            email       : user.email,
-            role        : 'student',
-            schoolCode  : '',
-            plan        : 'free',
-            createdAt   : serverTimestamp(),
-          },
-          xp: 0, level: 1, totalSessions: 0, bestStreak: 0,
-          settings: { voiceOn:true, beepOn:true, preferredDiff:'medium', preferredGroup:'all' },
-        })
-      }
-    }
-    window.dispatchEvent(new CustomEvent('ss-auth-change', { detail: { user } }))
-    callback(user)
-  })
 }export function onAuthReady(callback) {
   return onAuthStateChanged(auth, async (user) => {
     currentUser = user
