@@ -100,7 +100,7 @@ export async function resetPassword(email) {
   }
 }
 
-}export function onAuthReady(callback) {
+export function onAuthReady(callback) {
   return onAuthStateChanged(auth, async (user) => {
     currentUser = user
     if (user) {
