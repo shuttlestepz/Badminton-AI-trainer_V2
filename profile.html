@@ -12,8 +12,6 @@
 :root{--bg:#090c0e;--bg-2:#0f1315;--bg-3:#161b1e;--bg-4:#1d2427;--border:rgba(255,255,255,.06);--border-2:rgba(255,255,255,.11);--accent:#39e07a;--accent-dim:rgba(57,224,122,.12);--accent-glow:rgba(57,224,122,.3);--accent-2:#60eba0;--text:#eaf0eb;--text-2:#7a9080;--text-3:#3d4f44;--danger:#e05c5c;--sidebar-w:252px;--topbar-h:64px;--radius:12px;--radius-lg:18px;--trans:.18s cubic-bezier(.4,0,.2,1)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
-.bg-noise{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px}
-.bg-radial{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 65% 55% at 12% 8%,rgba(57,224,122,.06) 0%,transparent 65%)}
 .topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);background:rgba(9,12,14,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;z-index:300}
 .hamburger{width:40px;height:40px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0;transition:border-color var(--trans),background var(--trans)}
 .hamburger:hover{border-color:var(--border-2);background:var(--bg-4)}
@@ -86,11 +84,13 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 .anim-up{animation:fadeUp .4s cubic-bezier(.4,0,.2,1) both}
 @media(max-width:600px){.main{padding:22px 14px 60px}.page-title{font-size:20px}.topbar-xp{display:none}.btn-topbar-train span{display:none}.btn-topbar-train{padding:9px 12px}.profile-input{min-width:120px;max-width:160px;font-size:11.5px}.settings-row{flex-wrap:wrap;gap:8px}}
 </style>
+<link rel="stylesheet" href="css/global-background.css">
 </head>
 <body>
+<div class="global-bg" aria-hidden="true">
 <div class="bg-noise"></div>
 <div class="bg-radial"></div>
-
+</div>
 <header class="topbar">
   <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
   <a href="/Badminton-AI-trainer_V2/dashboard.html" class="topbar-brand">
