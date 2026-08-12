@@ -358,6 +358,8 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
 .t-drawer.open { transform: translateX(0); box-shadow: 4px 0 48px rgba(0,0,0,.6); }
 .t-drawer-top { flex: 1; padding: 20px 14px; overflow-y: auto; }
 .t-drawer-brand { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-size: 15px; font-weight: 800; letter-spacing: 1.5px; color: var(--accent); text-decoration: none; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.t-role-badge { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); border: 1px solid var(--border2); border-radius: 20px; padding: 5px 12px; margin-bottom: 18px; }
+.t-role-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 .t-nav-section { font-family: var(--font-mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); padding: 10px 10px 6px; }
 .t-nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-md); font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; text-decoration: none; transition: background .18s, color .18s; border: 1px solid transparent; }
 .t-nav-item:hover { background: var(--bg3); color: var(--text); }
@@ -723,6 +725,7 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
       <img src="/Badminton-AI-trainer_V2/favicon.ico" width="34" height="34" style="border-radius:50%;object-fit:cover;flex-shrink:0">
       Shuttlestepz
     </a>
+    <div class="t-role-badge" id="t-role-badge">Student</div>
     <div class="t-nav-section">Main</div>
     <a href="dashboard.html" class="t-nav-item">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
@@ -739,6 +742,14 @@ input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(-
     <a href="javascript:void(0)" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','leaderboard');window.location.href='dashboard.html'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="18 20 18 10"/><polyline points="12 20 12 4"/><polyline points="6 20 6 14"/></svg>
       Leaderboard
+    </a>
+    <a href="social.html" class="t-nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
+      Social
+    </a>
+    <a href="javascript:void(0)" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','plans');window.location.href='dashboard.html'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Plans
     </a>
     <div class="t-nav-section" style="margin-top:8px">Account</div>
     <a href="javascript:void(0)" class="t-nav-item" onclick="sessionStorage.setItem('ss_tab','profile');window.location.href='dashboard.html'">
