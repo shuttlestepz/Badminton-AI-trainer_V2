@@ -1,0 +1,105 @@
+/* ============================================================
+   Shuttlestepz — global-background.css
+   ────────────────────────────────────────────────────────────
+   THE single source of truth for the app-wide atmospheric
+   background. Link this file on EVERY page, once, and place
+   this markup immediately after the opening <body> tag on
+   EVERY page (before any other content):
+
+     <div class="global-bg" aria-hidden="true">
+       <div class="bg-noise"></div>
+       <div class="bg-radial"></div>
+     </div>
+
+   Do NOT redefine .bg-noise / .bg-radial / .global-bg anywhere
+   else in the codebase. To retune the look app-wide, edit only
+   the CSS variables below.
+   ============================================================ */
+
+:root {
+  /* Base tone (dark, deep green-black — not pure black) */
+  --ss-bg:        #050908;
+  --ss-bg-2:      #08100d;
+  --ss-bg-3:      #0b1411;
+
+  /* Ambient glow — subtle, layered, atmospheric (not neon) */
+  --ss-glow-1:    rgba(56,210,90,0.13);   /* primary  — upper-right   */
+  --ss-glow-2:    rgba(56,210,90,0.07);   /* secondary — lower-left  */
+  --ss-glow-3:    rgba(56,210,90,0.035);  /* tertiary — soft center  */
+
+  /* Vignette — darkens edges, keeps center readable */
+  --ss-vignette:  rgba(2,4,3,0.55);
+
+  /* Grain — barely perceptible texture, no visible pattern */
+  --ss-noise-opacity: 0.03;
+}
+
+/* Wrapper — one fixed layer behind the entire application.
+   Does not scroll, cannot be clicked through, never creates
+   its own scrollbar or horizontal overflow. */
+.global-bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--ss-bg);
+}
+
+/* Layer 1 — deep base + soft secondary bg tint (very subtle) */
+.global-bg::before {
+  content: '';
+  position: absolute;
+  inset: -2%;
+  background:
+    radial-gradient(120% 90% at 15% 100%, var(--ss-bg-3), transparent 60%),
+    var(--ss-bg-2);
+  opacity: .5;
+}
+
+/* Layer 2 — grain / texture (extremely low opacity, no visible tiling) */
+.bg-noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--ss-noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* Layer 3 — ambient green glow + vignette, composited together */
+.bg-radial {
+  position: absolute;
+  inset: -4%;
+  background:
+    radial-gradient(1000px 750px at 90% 6%,  var(--ss-glow-1), transparent 58%),
+    radial-gradient(820px  680px at 4% 96%,  var(--ss-glow-2), transparent 56%),
+    radial-gradient(600px  520px at 46% 42%, var(--ss-glow-3), transparent 65%),
+    radial-gradient(120% 120% at 50% 50%, transparent 58%, var(--ss-vignette) 100%);
+  background-repeat: no-repeat;
+  will-change: background-position;
+  animation: ss-bg-drift 70s ease-in-out infinite alternate;
+}
+
+/* Extremely slow, near-imperceptible ambient drift — optional polish */
+@keyframes ss-bg-drift {
+  from { background-position: 0 0, 0 0, 0 0, 0 0; }
+  to   { background-position: -2% 1.5%, 1.5% -1.5%, 1% -1%, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-radial { animation: none; }
+}
+
+/* Mobile — trim intensity slightly, disable animation, protect perf */
+@media (max-width: 640px) {
+  .bg-radial { animation: none; }
+  :root {
+    --ss-glow-1: rgba(56,210,90,0.10);
+    --ss-glow-2: rgba(56,210,90,0.055);
+  }
+}
+
+/* Safety: never allow this layer to introduce horizontal scroll */
+html, body { overflow-x: hidden; }
