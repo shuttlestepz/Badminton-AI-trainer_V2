@@ -16,6 +16,7 @@
   --text:#eaf0eb; --text-2:#7a9080; --text-3:#3d4f44;
   --danger:#e05c5c; --warn:#e0b43c;
   --radius:12px; --radius-lg:18px; --radius-xl:24px;
+  --nav-h:60px;
   --trans:.18s cubic-bezier(.4,0,.2,1);
   --font-display:'Sora',system-ui,sans-serif;
   --font-mono:'DM Mono',monospace;
@@ -23,62 +24,88 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(ellipse 900px 500px at 50% -10%, rgba(57,224,122,.07), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 10%, rgba(57,224,122,.04), transparent 55%),
+    var(--bg);
   color: var(--text);
   font-family: var(--font-display);
   min-height: 100vh;
-  padding: 32px 0 80px;
+  padding: 0 0 80px;
   -webkit-font-smoothing:antialiased;
 }
-.wrap { max-width: 640px; margin: 0 auto; padding: 0 20px; }
 
-/* Topbar */
+/* ---------------- Shared brand mark ---------------- */
+.brand-mark {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  background: radial-gradient(circle at 50% 35%, rgba(57,224,122,.18), rgba(57,224,122,.02) 70%);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(57,224,122,.15);
+}
+.brand-mark svg { width: 18px; height: 18px; color: var(--accent); }
+.brand-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--accent);
+  letter-spacing: -.2px;
+  white-space: nowrap;
+}
+
+/* ---------------- Topbar ---------------- */
 .topbar {
-  max-width: 640px;
-  margin: 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: var(--nav-h);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 20px 16px;
+  gap: 14px;
+  padding: 0 20px;
+  background: rgba(9,12,14,.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
 }
 .topbar-btn {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--bg-2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 10px;
   color: var(--text);
   cursor: pointer;
   text-decoration: none;
-  transition: border-color var(--trans);
+  transition: border-color var(--trans), background var(--trans);
   flex-shrink: 0;
 }
-.topbar-btn:hover { border-color: var(--accent); }
-.topbar-logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  flex-shrink: 0;
-}
-.topbar-title {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 15px;
-  color: var(--text);
-  white-space: nowrap;
-}
-.topbar-page-label {
-  font-family: var(--font-display);
+.topbar-btn:hover { border-color: var(--accent); background: var(--bg-3); }
+.topbar-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.topbar-spacer { flex: 1; }
+.topbar-page-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
   font-weight: 500;
-  font-size: 14px;
+  letter-spacing: .6px;
+  text-transform: uppercase;
   color: var(--text-2);
-  white-space: nowrap;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  padding: 7px 12px;
+  border-radius: 99px;
 }
+.topbar-page-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
 
-/* Nav drawer */
+/* ---------------- Nav drawer ---------------- */
 .nav-overlay {
   position: fixed;
   inset: 0;
@@ -95,61 +122,88 @@ body {
   position: fixed;
   top: 0; left: 0;
   height: 100%;
-  width: min(280px, 80vw);
+  width: min(260px, 82vw);
   background: var(--bg-2);
   border-right: 1px solid var(--border);
   z-index: 91;
   transform: translateX(-100%);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 20px;
+  padding: 20px 16px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  overflow-y: auto;
 }
 .nav-drawer.open { transform: translateX(0); }
 .nav-drawer-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  gap: 10px;
+  padding: 2px 4px 18px;
 }
-.nav-drawer-title {
+.nav-drawer-close {
+  margin-left: auto;
+}
+.nav-drawer hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 0 16px;
+}
+.nav-section-label {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: .9px;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--text-3);
+  padding: 0 10px;
+  margin: 4px 0 8px;
 }
+.nav-section-label.second { margin-top: 18px; }
 .nav-link {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
-  border-radius: var(--radius);
+  padding: 11px 12px;
+  margin-bottom: 3px;
+  border-radius: 10px;
+  border: 1px solid transparent;
   color: var(--text);
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 600;
-  transition: background var(--trans);
+  transition: background var(--trans), border-color var(--trans);
 }
+.nav-link svg { width: 17px; height: 17px; flex-shrink: 0; color: var(--text-2); transition: color var(--trans); }
 .nav-link:hover { background: var(--bg-3); }
-.nav-link.current { background: var(--accent-dim); color: var(--accent); }
-.nav-link .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-link.current {
+  background: var(--accent-dim);
+  border-color: rgba(57, 224, 122, .35);
+  color: var(--accent);
+}
+.nav-link.current svg { color: var(--accent); }
 
-header { margin-bottom: 24px; }
-.eyebrow {
+header.page-header { padding: 0 20px; margin-bottom: 24px; max-width: 640px; margin-left: auto; margin-right: auto; }
+.page-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-family: var(--font-mono);
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: .9px;
   text-transform: uppercase;
   color: var(--accent);
-  display: block;
-  margin-bottom: 8px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(57,224,122,.3);
+  padding: 5px 11px 5px 9px;
+  border-radius: 99px;
+  margin-bottom: 12px;
 }
-h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.6px; }
+.page-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
+h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.6px; }
 .subtitle { color: var(--text-2); font-size: 13px; margin-top: 6px; font-weight: 400; }
+
+.wrap { max-width: 640px; margin: 0 auto; padding: 0 20px; }
 
 /* Tabs */
 .tabs {
@@ -182,6 +236,7 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.6px; }
 .tab-btn.active {
   background: var(--accent-dim);
   color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(57,224,122,.3) inset;
 }
 
 .tab-panel { display: none; }
@@ -189,10 +244,10 @@ h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.6px; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 .card {
-  background: var(--bg-2);
+  background: linear-gradient(180deg, rgba(57,224,122,.03), transparent 40%), var(--bg-2);
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 24px;
+  border-radius: var(--radius-lg);
+  padding: 22px;
   margin-bottom: 20px;
 }
 
@@ -214,9 +269,9 @@ input[type="number"] {
   border-radius: 10px;
   font-family: var(--font-mono);
   font-size: 15px;
-  transition: border-color var(--trans);
+  transition: border-color var(--trans), box-shadow var(--trans);
 }
-input[type="number"]:focus { outline: none; border-color: var(--accent); }
+input[type="number"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 
 .segmented { display: flex; gap: 8px; flex-wrap: wrap; }
 .segmented button {
@@ -237,6 +292,7 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
   background: var(--accent-dim);
   border-color: rgba(57, 224, 122, .4);
   color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(57,224,122,.25) inset;
 }
 
 .field-hint {
@@ -374,7 +430,7 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* NEW: prev-plans + charts */
+/* prev-plans + charts */
 .prev-plans{display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;padding-bottom:4px}
 .prev-plans::-webkit-scrollbar{height:4px}
 .prev-plans::-webkit-scrollbar-thumb{background:var(--bg-4);border-radius:99px}
@@ -385,6 +441,10 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
 .chart-legend{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:12px}
 .chart-legend-item{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-2);font-family:var(--font-mono)}
 .chart-legend-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+
+@media (max-width: 480px) {
+  .topbar-page-pill span.label-text { display: none; }
+}
 </style>
 </head>
 <body>
@@ -397,36 +457,82 @@ input[type="number"]:focus { outline: none; border-color: var(--accent); }
       <line x1="3" y1="18" x2="21" y2="18"></line>
     </svg>
   </button>
-  <img src="favicon.png" alt="Shuttlestepz logo" class="topbar-logo">
-  <span class="topbar-title">Shuttlestepz</span>
-  <span class="topbar-page-label">Planners</span>
+  <a href="/Badminton-AI-trainer_V2/dashboard.html" class="topbar-brand">
+    <span class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="6" r="2.3"></circle>
+        <path d="M12 8.5c-1.6 0-2.6 1-2.9 2.6L8 15.5"></path>
+        <path d="M12 8.5c1.6 0 2.6 1 2.9 2.6l1.1 4.4"></path>
+        <path d="M12 11.5v3"></path>
+        <path d="M12 14.5 9 21"></path>
+        <path d="M12 14.5l3 6.5"></path>
+      </svg>
+    </span>
+    <span class="brand-title">Shuttlestepz</span>
+  </a>
+  <div class="topbar-spacer"></div>
+  <span class="topbar-page-pill"><span class="dot"></span><span class="label-text">Plans</span></span>
 </div>
 
 <div class="nav-overlay" id="nav-overlay"></div>
 <div class="nav-drawer" id="nav-drawer">
   <div class="nav-drawer-header">
-    <span class="nav-drawer-title">Menu</span>
-    <button class="topbar-btn" id="nav-close-btn" title="Close" aria-label="Close menu">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <span class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="6" r="2.3"></circle>
+        <path d="M12 8.5c-1.6 0-2.6 1-2.9 2.6L8 15.5"></path>
+        <path d="M12 8.5c1.6 0 2.6 1 2.9 2.6l1.1 4.4"></path>
+        <path d="M12 11.5v3"></path>
+        <path d="M12 14.5 9 21"></path>
+        <path d="M12 14.5l3 6.5"></path>
+      </svg>
+    </span>
+    <span class="brand-title">Shuttlestepz</span>
+    <button class="topbar-btn nav-drawer-close" id="nav-close-btn" title="Close" aria-label="Close menu">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="6" x2="6" y2="18"></line>
         <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
     </button>
   </div>
-  <a href="/Badminton-AI-trainer_V2/dashboard.html" class="nav-link"><span class="nav-icon">🏠</span> Dashboard</a>
-  <a href="/Badminton-AI-trainer_V2/trainer.html" class="nav-link"><span class="nav-icon">🏸</span> Trainer</a>
-  <a href="/Badminton-AI-trainer_V2/plans.html" class="nav-link current"><span class="nav-icon">📋</span> Plans</a>
-  <a href="/Badminton-AI-trainer_V2/profile.html" class="nav-link"><span class="nav-icon">👤</span> Profile</a>
-  <a href="/Badminton-AI-trainer_V2/how-to-use.html" class="nav-link"><span class="nav-icon">❓</span> How to Use</a>
+  <hr>
+
+  <div class="nav-section-label">Main</div>
+  <a href="/Badminton-AI-trainer_V2/dashboard.html" class="nav-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+    Overview
+  </a>
+  <a href="/Badminton-AI-trainer_V2/trainer.html" class="nav-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+    Train
+  </a>
+  <a href="/Badminton-AI-trainer_V2/history.html" class="nav-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg>
+    History
+  </a>
+  <a href="/Badminton-AI-trainer_V2/social.html" class="nav-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.8"></circle><circle cx="6" cy="12" r="2.8"></circle><circle cx="18" cy="19" r="2.8"></circle><line x1="8.5" y1="10.6" x2="15.5" y2="6.4"></line><line x1="8.5" y1="13.4" x2="15.5" y2="17.6"></line></svg>
+    Social
+  </a>
+  <a href="/Badminton-AI-trainer_V2/plans.html" class="nav-link current">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5v-13Z"></path><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20"></path></svg>
+    Plans
+  </a>
+
+  <div class="nav-section-label second">Account</div>
+  <a href="/Badminton-AI-trainer_V2/profile.html" class="nav-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"></path></svg>
+    Profile
+  </a>
 </div>
 
-<div class="wrap">
-  <header>
-    <span class="eyebrow">Shuttlestepz</span>
-    <h1>Plans</h1>
-    <p class="subtitle">Diet, hydration, and workout targets built around your training load.</p>
-  </header>
+<header class="page-header">
+  <span class="page-badge"><span class="dot"></span>Plans</span>
+  <h1>Plans</h1>
+  <p class="subtitle">Diet, hydration, and workout targets built around your training load.</p>
+</header>
 
+<div class="wrap">
   <div class="tabs">
     <button class="tab-btn active" data-tab="diet">🍽️ Diet</button>
     <button class="tab-btn" data-tab="hydration">💧 Hydration</button>
