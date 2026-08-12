@@ -24,9 +24,6 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
 
-.bg-noise{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px}
-.bg-radial{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 65% 55% at 12% 8%,rgba(57,224,122,.06) 0%,transparent 65%),radial-gradient(ellipse 45% 35% at 88% 90%,rgba(57,224,122,.04) 0%,transparent 55%),radial-gradient(ellipse 30% 25% at 50% 50%,rgba(57,224,122,.02) 0%,transparent 70%)}
-
 /* TOPBAR */
 .topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);background:rgba(9,12,14,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;z-index:300}
 .hamburger{width:40px;height:40px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0;transition:border-color var(--trans),background var(--trans)}
@@ -255,12 +252,14 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 #tr-model-status.err{color:#e05c5c;background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.25)}
 @media(max-width:768px){.tr-left,.tr-right{display:none}.tr-cam-wrap{height:auto;width:100%}}
 </style>
+<link rel="stylesheet" href="css/global-background.css">
 </head>
 <body>
 
+<div class="global-bg" aria-hidden="true">
 <div class="bg-noise"></div>
 <div class="bg-radial"></div>
-
+</div>
 <!-- TOPBAR -->
 <header class="topbar">
   <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
