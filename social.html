@@ -118,6 +118,7 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 .chat-topbar-actions{display:flex;gap:6px}
 .icon-btn{width:34px;height:34px;border-radius:9px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--trans);font-size:15px}
 .icon-btn:hover{color:var(--text);border-color:var(--border2)}
+.back-btn{display:none;flex-shrink:0}
 
 /* Messages */
 .messages-area{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:2px}
@@ -302,7 +303,13 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 @keyframes spin{to{transform:rotate(360deg)}}
 
 @media(max-width:1000px){.discover-col{display:none}.chat-window{right:0}}
-@media(max-width:640px){.chat-list-col{width:100%;display:none}.chat-list-col.mob{display:flex}.chat-window{left:0;right:0}}
+@media(max-width:640px){
+  .chat-list-col{width:100%;display:flex}
+  .chat-window{left:0;right:0;display:none}
+  .back-btn{display:flex}
+  #social-shell.mob-chat-open .chat-list-col{display:none}
+  #social-shell.mob-chat-open .chat-window{display:flex}
+}
 </style>
 <link rel="stylesheet" href="css/global-background.css">
 </head>
@@ -575,9 +582,11 @@ $('thread-search').addEventListener('input',()=>{if(window._lastChats)renderThre
 function openChat(uid,profile){
   activeChat=uid;activeChatProfile=profile
   document.querySelectorAll('.thread-item').forEach(t=>t.classList.toggle('active',t.dataset.uid===uid))
+  document.getElementById('social-shell').classList.add('mob-chat-open')
   const win=$('chat-window'),name=profile?.displayName||'Player'
   win.innerHTML=`
     <div class="chat-topbar" onclick="openProfileModal('${uid}')">
+      <button class="icon-btn back-btn" onclick="event.stopPropagation();closeChatMobile()" title="Back">←</button>
       ${mkAv(profile,38)}
       <div class="chat-topbar-inner">
         <div class="chat-topbar-name">${name}</div>
@@ -626,6 +635,20 @@ function openChat(uid,profile){
     })
   }
 }
+
+function closeChatMobile(){
+  document.getElementById('social-shell').classList.remove('mob-chat-open')
+  if(chatUnsub){chatUnsub();chatUnsub=null}
+  activeChat=null;activeChatProfile=null
+  document.querySelectorAll('.thread-item').forEach(t=>t.classList.remove('active'))
+  $('chat-window').innerHTML=`
+    <div class="chat-empty" id="chat-empty">
+      <div class="chat-empty-icon">🏸</div>
+      <h3>Select a chat</h3>
+      <p style="font-size:13px;max-width:200px;line-height:1.6">Pick a friend from the left to start chatting.</p>
+    </div>`
+}
+window.closeChatMobile=closeChatMobile
 
 function togglePicker(type){
   const ep=$('emoji-picker'),gp=$('gif-picker')
@@ -734,7 +757,7 @@ window.showThreadCtx=showThreadCtx
 function showChatMenu(e,uid){threadCtxUID=uid;const m=document.getElementById('thread-ctx-menu');m.style.top=(e.clientY+10)+'px';m.style.left=Math.min(e.clientX,window.innerWidth-200)+'px';m.classList.add('show')}
 window.showChatMenu=showChatMenu
 document.getElementById('tctx-clear').addEventListener('click',async()=>{document.getElementById('thread-ctx-menu').classList.remove('show');if(!threadCtxUID)return;if(!confirm('Clear all messages?'))return;try{await clearChat(threadCtxUID);const w=document.getElementById('messages');if(w)w.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">Say hi! 👋</div>';toast('Chat cleared')}catch(e){toast('Failed','err')}})
-document.getElementById('tctx-delete').addEventListener('click',async()=>{document.getElementById('thread-ctx-menu').classList.remove('show');if(!threadCtxUID)return;if(!confirm('Delete this conversation?'))return;try{await deleteChat(threadCtxUID);if(activeChat===threadCtxUID){activeChat=null;document.getElementById('chat-window').innerHTML='<div class="chat-empty"><div class="chat-empty-icon">🏸</div><h3>Select a chat</h3></div>'}toast('Chat deleted')}catch(e){toast('Failed','err')}})
+document.getElementById('tctx-delete').addEventListener('click',async()=>{document.getElementById('thread-ctx-menu').classList.remove('show');if(!threadCtxUID)return;if(!confirm('Delete this conversation?'))return;try{await deleteChat(threadCtxUID);if(activeChat===threadCtxUID){closeChatMobile()}toast('Chat deleted')}catch(e){toast('Failed','err')}})
 
 $('ctx-reply').addEventListener('click',()=>{
   const el=document.querySelector(`[data-id="${ctxMsgId}"]`)
