@@ -947,17 +947,178 @@ function showResults() {
 // ── Groq AI Feedback ──────────────────────────────────────────
 const GROQ_URL = 'https://plain-scene-04e6.shuttlestepz.workers.dev'
 
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]))
+}
+
+// Handles several possible Worker response shapes
+function extractAIText(data) {
+  if (!data) return ''
+  if (typeof data === 'string') return data
+  return data.choices?.[0]?.message?.content
+      || data.choices?.[0]?.text
+      || data.content?.[0]?.text
+      || data.response || data.text || data.result || ''
+}
+
+// Local fallback — only used when the API fails
+function buildLocalFeedback(zoneData, acc, avgMs) {
+  const played = zoneData.filter(z => z.total > 0)
+  if (!played.length) return null
+  const worst = played[0]                    // sorted worst → best
+  const best  = played[played.length - 1]
+  const z = worst.zone
+
+  let drill, drillDesc, exercise, exerciseDesc
+  if (z.includes('BACK')) {
+    drill = 'Back-court shadow footwork'
+    drillDesc = 'Start at centre, split-step, then chassé back to the rear corner and recover. Do 3 sets of 10 reps staying light on your toes.'
+    exercise = 'Reverse lunges'
+    exerciseDesc = 'Do 3 sets of 12 per leg, driving back through the heel to build rear-court power.'
+  } else if (z === 'FRONT' || z.includes('CORNER')) {
+    drill = 'Front-court lunge and recover'
+    drillDesc = 'From centre, take a long lunge step to the net and push back explosively to the middle. Do 3 sets of 10 per side.'
+    exercise = 'Forward lunges'
+    exerciseDesc = 'Do 3 sets of 12 per leg with a controlled knee and a fast push-back.'
+  } else {
+    drill = 'Side-step and recover'
+    drillDesc = 'Split-step, shuffle sideways to the zone, then shuffle back to centre without crossing your feet. Do 4 sets of 30 seconds.'
+    exercise = 'Lateral band walks'
+    exerciseDesc = 'Do 3 sets of 15 steps each way with a resistance band above the knees.'
+  }
+
+  return {
+    summary: acc >= 75 ? 'Strong session — your footwork is sharp and consistent.'
+           : acc >= 50 ? 'Solid session with clear room to improve in a few zones.'
+           : 'Tough session — focus on your weakest zones and build from there.',
+    weakest_zone: {
+      zone: z,
+      why: `You hit only ${worst.pct}% of ${z} targets, so recovery and first-step speed here need work.`,
+      drill, drill_desc: drillDesc, exercise, exercise_desc: exerciseDesc,
+    },
+    best_zone: { zone: best.zone, praise: `Great work — you hit ${best.pct}% of ${best.zone} targets.` },
+    reaction_tip: avgMs && avgMs > 2500
+      ? 'Do a small split-step the moment a zone is called so you start from a loaded position.'
+      : 'Keep your weight on the balls of your feet and stay in a ready stance between rounds.',
+    focus_next: `Spend extra time on ${z} next session and aim to beat ${worst.pct}% there.`,
+  }
+}
+
+async function callCoach(prompt) {
+  let lastErr
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const ctrl  = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 20000)
+    try {
+      const res = await fetch(GROQ_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }),
+        signal: ctrl.signal,
+      })
+      const bodyText = await res.text()
+      console.log(`[AI feedback] attempt ${attempt} → status ${res.status}`, bodyText.slice(0, 600))
+
+      let data
+      try { data = JSON.parse(bodyText) } catch { data = bodyText }
+
+      if (!res.ok) {
+        const msg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || `HTTP ${res.status}`
+        const err = new Error(msg); err.status = res.status
+        throw err
+      }
+      const raw = extractAIText(data)
+      if (!raw) throw new Error('Empty response from coach')
+      return raw
+    } catch (e) {
+      lastErr = e.name === 'AbortError' ? new Error('Request timed out') : e
+      // Don't retry client errors (bad key, bad model, etc.)
+      if (lastErr.status && lastErr.status < 500 && lastErr.status !== 429) break
+      await new Promise(r => setTimeout(r, 1200))
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  throw lastErr
+}
+
+function renderFeedback(fb, el, notice = '') {
+  el.innerHTML = `
+    ${notice ? `<div class="ai-error" style="margin-bottom:12px">${esc(notice)}</div>` : ''}
+    <div class="ai-summary">${esc(fb.summary)}</div>
+    <div class="ai-cards">
+      <div class="ai-card ai-card--weak">
+        <div class="ai-card-header">
+          <span class="ai-badge ai-badge--weak">⚠ Weakest Zone</span>
+          <span class="ai-zone-name">${esc(fb.weakest_zone.zone)}</span>
+        </div>
+        <p class="ai-why">${esc(fb.weakest_zone.why)}</p>
+        <div class="ai-improvement">
+          <div class="ai-improve-item">
+            <div class="ai-improve-label">🏸 Drill</div>
+            <div class="ai-improve-title">${esc(fb.weakest_zone.drill)}</div>
+            <div class="ai-improve-desc">${esc(fb.weakest_zone.drill_desc)}</div>
+          </div>
+          <div class="ai-improve-item">
+            <div class="ai-improve-label">💪 Exercise</div>
+            <div class="ai-improve-title">${esc(fb.weakest_zone.exercise)}</div>
+            <div class="ai-improve-desc">${esc(fb.weakest_zone.exercise_desc)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="ai-card ai-card--best">
+        <div class="ai-card-header">
+          <span class="ai-badge ai-badge--best">✓ Strongest Zone</span>
+          <span class="ai-zone-name">${esc(fb.best_zone.zone)}</span>
+        </div>
+        <p class="ai-why">${esc(fb.best_zone.praise)}</p>
+      </div>
+    </div>
+    <div class="ai-tips">
+      <div class="ai-tip">
+        <div class="ai-tip-icon">⚡</div>
+        <div>
+          <div class="ai-tip-label">Reaction Tip</div>
+          <div class="ai-tip-text">${esc(fb.reaction_tip)}</div>
+        </div>
+      </div>
+      <div class="ai-tip">
+        <div class="ai-tip-icon">🎯</div>
+        <div>
+          <div class="ai-tip-label">Focus Next Session</div>
+          <div class="ai-tip-text">${esc(fb.focus_next)}</div>
+        </div>
+      </div>
+    </div>`
+}
+
+function saveTips(fb) {
+  import('./database.js').then(m => {
+    try {
+      const p = m.default.saveAITips?.({
+        summary: fb.summary,
+        weakZone: fb.weakest_zone.zone,
+        weakDrill: fb.weakest_zone.drill,
+        weakDrillDesc: fb.weakest_zone.drill_desc,
+        bestZone: fb.best_zone.zone,
+        bestPraise: fb.best_zone.praise,
+        reactionTip: fb.reaction_tip,
+        focusNext: fb.focus_next,
+        createdAt: new Date(),
+      })
+      if (p && p.catch) p.catch(() => {})
+    } catch (e) { console.warn('[AI feedback] saveAITips failed:', e) }
+  }).catch(() => {})
+}
+
 async function getAIFeedback() {
   const feedbackSection = document.getElementById('ai-feedback-section')
   const feedbackContent = document.getElementById('ai-feedback-content')
-  if (!feedbackSection || !feedbackContent) return
-
+  if (!feedbackSection || !feedbackContent) {
+    console.warn('[AI feedback] #ai-feedback-section or #ai-feedback-content is missing in trainer.html')
+    return
+  }
   feedbackSection.style.display = 'block'
-  feedbackContent.innerHTML = `
-    <div class="ai-loading">
-      <div class="ai-spinner"></div>
-      <span>Analysing your session…</span>
-    </div>`
 
   const zoneData = Object.entries(session.dirStats).map(([zone, s]) => ({
     zone, hit: s.hit, total: s.total,
@@ -969,6 +1130,17 @@ async function getAIFeedback() {
   const avgMs = session.roundTimings.length
     ? Math.round(session.roundTimings.reduce((a, b) => a + b, 0) / session.roundTimings.length)
     : null
+
+  if (!zoneData.length) {
+    feedbackContent.innerHTML = `<div class="ai-error">No rounds completed yet — play a few rounds to get coaching feedback 🏸</div>`
+    return
+  }
+
+  feedbackContent.innerHTML = `
+    <div class="ai-loading">
+      <div class="ai-spinner"></div>
+      <span>Analysing your session…</span>
+    </div>`
 
   const prompt = `You are an expert badminton footwork coach. Analyse this training session and give specific, actionable feedback.
 
@@ -1002,95 +1174,28 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
 }`
 
   try {
-    const response = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
-    })
-
-    if (!response.ok) {
-      const errData = await response.json()
-      throw new Error(errData?.error?.message || `HTTP ${response.status}`)
-    }
-
-    const data = await response.json()
-    const raw  = data.choices?.[0]?.message?.content || ''
+    // 1️⃣ Try the API first
+    const raw     = await callCoach(prompt)
     const cleaned = raw.replace(/```json|```/g, '').trim()
+    const match   = cleaned.match(/\{[\s\S]*\}/)
+    if (!match) throw new Error('Coach reply was not valid JSON')
+    const fb = JSON.parse(match[0])
 
-    let fb
-    try {
-      const match = cleaned.match(/\{[\s\S]*\}/)
-      if (!match) throw new Error('No JSON found')
-      fb = JSON.parse(match[0])
-    } catch {
-      feedbackContent.innerHTML = `<div class="ai-raw">${raw}</div>`
-      return
-    }
+    // Strict check: every field must exist, otherwise treat as failed
+    const w = fb.weakest_zone, b = fb.best_zone
+    const complete = fb.summary && fb.reaction_tip && fb.focus_next &&
+      w && w.zone && w.why && w.drill && w.drill_desc && w.exercise && w.exercise_desc &&
+      b && b.zone && b.praise
+    if (!complete) throw new Error('Coach reply was incomplete')
 
-    import('./database.js').then(m => {
-      m.default.saveAITips({
-        summary: fb.summary,
-        weakZone: fb.weakest_zone.zone,
-        weakDrill: fb.weakest_zone.drill,
-        weakDrillDesc: fb.weakest_zone.drill_desc,
-        bestZone: fb.best_zone.zone,
-        bestPraise: fb.best_zone.praise,
-        reactionTip: fb.reaction_tip,
-        focusNext: fb.focus_next,
-        createdAt: new Date(),
-      }).catch(() => {})
-    })
-
-    feedbackContent.innerHTML = `
-      <div class="ai-summary">${fb.summary}</div>
-      <div class="ai-cards">
-        <div class="ai-card ai-card--weak">
-          <div class="ai-card-header">
-            <span class="ai-badge ai-badge--weak">⚠ Weakest Zone</span>
-            <span class="ai-zone-name">${fb.weakest_zone.zone}</span>
-          </div>
-          <p class="ai-why">${fb.weakest_zone.why}</p>
-          <div class="ai-improvement">
-            <div class="ai-improve-item">
-              <div class="ai-improve-label">🏸 Drill</div>
-              <div class="ai-improve-title">${fb.weakest_zone.drill}</div>
-              <div class="ai-improve-desc">${fb.weakest_zone.drill_desc}</div>
-            </div>
-            <div class="ai-improve-item">
-              <div class="ai-improve-label">💪 Exercise</div>
-              <div class="ai-improve-title">${fb.weakest_zone.exercise}</div>
-              <div class="ai-improve-desc">${fb.weakest_zone.exercise_desc}</div>
-            </div>
-          </div>
-        </div>
-        <div class="ai-card ai-card--best">
-          <div class="ai-card-header">
-            <span class="ai-badge ai-badge--best">✓ Strongest Zone</span>
-            <span class="ai-zone-name">${fb.best_zone.zone}</span>
-          </div>
-          <p class="ai-why">${fb.best_zone.praise}</p>
-        </div>
-      </div>
-      <div class="ai-tips">
-        <div class="ai-tip">
-          <div class="ai-tip-icon">⚡</div>
-          <div>
-            <div class="ai-tip-label">Reaction Tip</div>
-            <div class="ai-tip-text">${fb.reaction_tip}</div>
-          </div>
-        </div>
-        <div class="ai-tip">
-          <div class="ai-tip-icon">🎯</div>
-          <div>
-            <div class="ai-tip-label">Focus Next Session</div>
-            <div class="ai-tip-text">${fb.focus_next}</div>
-          </div>
-        </div>
-      </div>`
-
+    renderFeedback(fb, feedbackContent)
+    saveTips(fb)
+    console.log('✅ AI feedback from API')
   } catch (err) {
-    feedbackContent.innerHTML = `<div class="ai-error">Couldn't load AI feedback — ${err.message}</div>`
-    console.warn('[AI feedback]', err)
+    // 2️⃣ API failed → fall back to local drills
+    console.warn('[AI feedback] API failed → using local drills:', err)
+    const local = buildLocalFeedback(zoneData, acc, avgMs)
+    renderFeedback(local, feedbackContent, `AI coach unavailable (${err.message}) — showing built-in drills instead`)
   }
 }
 
