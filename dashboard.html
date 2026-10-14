@@ -128,6 +128,30 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 .empty-state{display:flex;flex-direction:column;align-items:center;gap:10px;padding:52px 24px;color:var(--text-2);font-size:13.5px;text-align:center;border:1px dashed rgba(255,255,255,.06);border-radius:var(--radius-lg)}
 .empty-icon{font-size:38px}
 
+/* SESSION MODAL */
+.session-item{cursor:pointer}
+.session-item:active{transform:scale(.995)}
+.sm-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}
+.sm-overlay.open{display:flex;animation:fadeUp .25s both}
+.sm-box{background:var(--bg-2);border:1px solid var(--border-2);border-radius:var(--radius-xl);padding:26px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;position:relative}
+.sm-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer;font-size:14px}
+.sm-close:hover{color:var(--text);border-color:var(--border-2)}
+.sm-title{font-size:20px;font-weight:800;letter-spacing:-.4px}
+.sm-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-2);margin:4px 0 20px}
+.sm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.sm-stat{background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.sm-val{font-size:22px;font-weight:900;color:var(--accent);letter-spacing:-1px}
+.sm-lbl{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-3);margin-top:4px}
+.sm-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--text-2)}
+.sm-row b{color:var(--text);font-weight:700}
+.sm-bd-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-3);margin:18px 0 10px}
+.sm-bd-row{display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text-2);margin-bottom:6px}
+.sm-bd-name{min-width:84px;text-transform:uppercase;letter-spacing:.6px}
+.sm-bd-bar{flex:1;height:5px;border-radius:99px;background:var(--bg-4);overflow:hidden}
+.sm-bd-fill{height:100%;background:var(--accent);border-radius:99px}
+.sm-bd-pct{min-width:34px;text-align:right;color:var(--accent)}
+
+
 /* ANIMATIONS */
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -409,6 +433,22 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
   </section>
 </main>
 
+<!-- SESSION SUMMARY MODAL -->
+<div class="sm-overlay" id="session-modal" onclick="if(event.target===this)closeSessionModal()">
+  <div class="sm-box">
+    <button class="sm-close" onclick="closeSessionModal()">✕</button>
+    <div class="sm-title" id="sm-title">Footwork Drill</div>
+    <div class="sm-date" id="sm-date"></div>
+    <div class="sm-grid">
+      <div class="sm-stat"><div class="sm-val" id="sm-score">0</div><div class="sm-lbl">Score</div></div>
+      <div class="sm-stat"><div class="sm-val" id="sm-acc">0%</div><div class="sm-lbl">Accuracy</div></div>
+      <div class="sm-stat"><div class="sm-val" id="sm-xp">+0</div><div class="sm-lbl">XP</div></div>
+    </div>
+    <div id="sm-rows"></div>
+    <div id="sm-bd"></div>
+  </div>
+</div>
+
 <!-- SCRIPTS -->
 <script>
 window.toggleSidebar = function() {
@@ -475,11 +515,11 @@ function fmtDate(ts){
   return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})
 }
 
-function buildSessionCard(s){
+function buildSessionCard(s,i){
   const total=s.totalRounds||1,acc=s.accuracy!=null?s.accuracy+'%':Math.round(((s.hits||0)/total)*100)+'%'
   const xpe=s.xpEarned||(50+(s.hits||0)*2)
   const drill=(s.drill||s.mode||'footwork').replace(/^\w/,c=>c.toUpperCase())
-  return`<div class="session-item">
+  return`<div class="session-item" data-idx="${i}">
     <div class="session-icon">🏸</div>
     <div class="session-info">
       <div class="session-name">${drill} Drill</div>
@@ -491,6 +531,41 @@ function buildSessionCard(s){
     </div>
   </div>`
 }
+
+function openSessionModal(s){
+  const total=s.totalRounds||0,hits=s.hits||0
+  const acc=s.accuracy!=null?s.accuracy:(total?Math.round(hits/total*100):0)
+  const xpe=s.xpEarned||(50+hits*2)
+  const drill=(s.drill||s.mode||'footwork').replace(/^\w/,c=>c.toUpperCase())
+  const d=s.createdAt?(s.createdAt.toDate?s.createdAt.toDate():new Date(s.createdAt)):null
+  tx('sm-title',drill+' Drill')
+  tx('sm-date',d?d.toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit'}):'')
+  tx('sm-score',s.score||0);tx('sm-acc',acc+'%');tx('sm-xp','+'+xpe)
+
+  const rows=[
+    ['Hits',hits+(total?' / '+total:'')],
+    ['Best streak',(s.bestStreak||0)+' 🔥'],
+    ['Difficulty',s.difficulty],
+    ['Duration',s.duration?s.duration+'s':null]
+  ].filter(r=>r[1]!=null&&r[1]!=='')
+  $('sm-rows').innerHTML=rows.map(r=>`<div class="sm-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')
+
+  const bd=s.breakdown||s.zoneBreakdown||s.zoneStats
+  const bdEl=$('sm-bd')
+  if(bd&&typeof bd==='object'&&Object.keys(bd).length){
+    bdEl.innerHTML='<div class="sm-bd-title">Zone breakdown</div>'+Object.entries(bd).map(([k,v])=>{
+      const pct=typeof v==='number'?Math.round(v):(v&&v.total?Math.round((v.hits||0)/v.total*100):0)
+      return`<div class="sm-bd-row"><span class="sm-bd-name">${k}</span><div class="sm-bd-bar"><div class="sm-bd-fill" style="width:${pct}%"></div></div><span class="sm-bd-pct">${pct}%</span></div>`
+    }).join('')
+  }else bdEl.innerHTML=''
+  $('session-modal').classList.add('open')
+}
+window.closeSessionModal=()=>$('session-modal').classList.remove('open')
+document.addEventListener('keydown',e=>{if(e.key==='Escape')window.closeSessionModal()})
+$('overview-sessions').addEventListener('click',e=>{
+  const el=e.target.closest('.session-item');if(!el)return
+  const s=(window._dashSessions||[])[el.dataset.idx];if(s)openSessionModal(s)
+})
 
 window.AUTH.recordSession=async(data)=>{
   try{
@@ -528,7 +603,7 @@ DB.onAuthReady(async(firebaseUser)=>{
       if(ov){
         ov.querySelectorAll('.session-item').forEach(e=>e.remove())
         if(sessions.length===0){if(empty)empty.style.display='flex'}
-        else{if(empty)empty.style.display='none';sessions.slice(0,3).forEach(s=>ov.insertAdjacentHTML('beforeend',buildSessionCard(s)))}
+        else{if(empty)empty.style.display='none';window._dashSessions=sessions.slice(0,3);window._dashSessions.forEach((s,i)=>ov.insertAdjacentHTML('beforeend',buildSessionCard(s,i)))}
       }
       tx('stat-sessions',sessions.length)
     })
