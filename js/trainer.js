@@ -842,6 +842,7 @@ function beginSession() {
   activeZones=ZONE_GROUPS[selectedGroup]||ZONE_GROUPS.all
   session.round=0; session.score=0; session.streak=0; session.bestStreak=0; session.hits=0
   session.results=[]; session.dirStats={}; session.roundTimings=[]
+  window._savePromise=null; window._lastSessionId=null
   session.currentDir=null; session.active=false
   buildDots(session.totalRounds); updateStats()
   dirText.textContent='GET READY'; dirText.className='dir-text'
@@ -877,7 +878,7 @@ function endSession() {
       const DB = m.default
       const user = DB.getCurrentUser()
       if (!user) return
-      DB.saveSession({
+      window._savePromise = DB.saveSession({
         mode: 'footwork', drill: 'footwork',
         score: session.score, hits: session.hits,
         totalRounds: session.totalRounds,
@@ -885,9 +886,13 @@ function endSession() {
         accuracy: acc, xpEarned,
         roundTimings: session.roundTimings,
         dirStats: session.dirStats,
+        results: session.results,
+        difficulty: session.difficulty,
+        timePerDir: session.timePerDir,
       })
+      Promise.resolve(window._savePromise).then(id => { window._lastSessionId = id }).catch(() => {})
       DB.awardXP(xpEarned)
-    })
+          
     // ── Notify SW that training is done (for streak reminder) ──
     import('./notifications.js').then(m => {
       m.reportTrainingDone()
@@ -1092,7 +1097,18 @@ function renderFeedback(fb, el, notice = '') {
     </div>`
 }
 
+async function attachFeedbackToSession(fb) {
+  try {
+    const id = await window._savePromise
+    if (!id) return
+    const m = await import('./database.js')
+    if (m.default.updateSession) await m.default.updateSession(id, { feedback: fb })
+    else console.warn('[feedback] DB.updateSession missing')
+  } catch (e) { console.warn('[feedback] attach failed:', e) }
+}
+
 function saveTips(fb) {
+  attachFeedbackToSession(fb)
   import('./database.js').then(m => {
     try {
       const p = m.default.saveAITips?.({
