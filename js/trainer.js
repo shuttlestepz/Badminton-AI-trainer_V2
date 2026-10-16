@@ -892,6 +892,7 @@ function endSession() {
       })
       Promise.resolve(window._savePromise).then(id => { window._lastSessionId = id }).catch(() => {})
       DB.awardXP(xpEarned)
+    })
           
     // ── Notify SW that training is done (for streak reminder) ──
     import('./notifications.js').then(m => {
