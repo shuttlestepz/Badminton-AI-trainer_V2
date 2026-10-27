@@ -150,7 +150,20 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 .sm-bd-bar{flex:1;height:5px;border-radius:99px;background:var(--bg-4);overflow:hidden}
 .sm-bd-fill{height:100%;background:var(--accent);border-radius:99px}
 .sm-bd-pct{min-width:34px;text-align:right;color:var(--accent)}
-
+.sm-fb{font-size:12.5px;line-height:1.65;color:var(--text-2);background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:8px}
+.sm-fb b{color:var(--text)}
+.sm-fb-weak{border-color:rgba(224,92,92,.25)}
+.sm-fb-best{border-color:rgba(57,224,122,.25)}
+.sm-fb p{margin:6px 0 8px}
+.sm-fb-sum{color:var(--text);font-weight:600}
+.sm-fb-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sm-badge{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;padding:3px 8px;border-radius:20px}
+.sm-badge-weak{color:var(--danger);background:rgba(224,92,92,.1)}
+.sm-badge-best{color:var(--accent);background:var(--accent-dim)}
+.sm-fb-zone{font-weight:800;color:var(--text);font-size:13px}
+.sm-fb-item{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.sm-fb-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-3);margin-bottom:3px}
+.sm-fb-ttl{color:var(--text);font-weight:700;margin-bottom:2px}
 
 /* ANIMATIONS */
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -446,6 +459,7 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
     </div>
     <div id="sm-rows"></div>
     <div id="sm-bd"></div>
+    <div id="sm-extra"></div>
   </div>
 </div>
 
@@ -532,6 +546,7 @@ function buildSessionCard(s,i){
   </div>`
 }
 
+/* ── Session summary modal ── */
 function openSessionModal(s){
   const total=s.totalRounds||0,hits=s.hits||0
   const acc=s.accuracy!=null?s.accuracy:(total?Math.round(hits/total*100):0)
@@ -542,7 +557,13 @@ function openSessionModal(s){
   tx('sm-date',d?d.toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit'}):'')
   tx('sm-score',s.score||0);tx('sm-acc',acc+'%');tx('sm-xp','+'+xpe)
 
+  const gradeTxt=acc>=90?'S — Elite':acc>=75?'A — Sharp':acc>=60?'B — Solid':acc>=40?'C — Keep going':'D — Needs work'
+  const rt=Array.isArray(s.roundTimings)?s.roundTimings:[]
+  const avgMs=rt.length?Math.round(rt.reduce((a,b)=>a+b,0)/rt.length):null
   const rows=[
+    ['Grade',gradeTxt],
+    ['Avg speed',avgMs?(avgMs/1000).toFixed(2)+'s':null],
+    ['Rounds',total||null],
     ['Hits',hits+(total?' / '+total:'')],
     ['Best streak',(s.bestStreak||0)+' 🔥'],
     ['Difficulty',s.difficulty],
@@ -550,14 +571,52 @@ function openSessionModal(s){
   ].filter(r=>r[1]!=null&&r[1]!=='')
   $('sm-rows').innerHTML=rows.map(r=>`<div class="sm-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')
 
-  const bd=s.breakdown||s.zoneBreakdown||s.zoneStats
+  const bd=s.breakdown||s.zoneBreakdown||s.zoneStats||s.dirStats
   const bdEl=$('sm-bd')
   if(bd&&typeof bd==='object'&&Object.keys(bd).length){
     bdEl.innerHTML='<div class="sm-bd-title">Zone breakdown</div>'+Object.entries(bd).map(([k,v])=>{
-      const pct=typeof v==='number'?Math.round(v):(v&&v.total?Math.round((v.hits||0)/v.total*100):0)
+      const pct=typeof v==='number'?Math.round(v):(v&&v.total?Math.round(((v.hits??v.hit)||0)/v.total*100):0)
       return`<div class="sm-bd-row"><span class="sm-bd-name">${k}</span><div class="sm-bd-bar"><div class="sm-bd-fill" style="width:${pct}%"></div></div><span class="sm-bd-pct">${pct}%</span></div>`
     }).join('')
   }else bdEl.innerHTML=''
+
+  const e2=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+  const results=Array.isArray(s.results)?s.results:[]
+  const slowMs=(s.timePerDir||0)*700
+  const missed={}
+  results.forEach(r=>{if(!r.hit)missed[r.dir]=(missed[r.dir]||0)+1})
+  const slow=results.filter(r=>r.hit&&r.responseMs&&slowMs&&r.responseMs>slowMs).length
+  const mk=Object.entries(missed).sort((a,b)=>b[1]-a[1])
+  let html=''
+  if(mk.length||slow){
+    html+='<div class="sm-bd-title">Mistakes</div>'
+    html+=mk.map(([z,n])=>`<div class="sm-row"><span>Missed ${e2(z)}</span><b style="color:var(--danger)">${n}×</b></div>`).join('')
+    if(slow)html+=`<div class="sm-row"><span>Slow hits (over 70% of time limit)</span><b style="color:var(--warn)">${slow}×</b></div>`
+  }else if(results.length){
+    html+='<div class="sm-bd-title">Mistakes</div><div class="sm-fb">No misses. Clean session 🎯</div>'
+  }
+  const fb=s.feedback
+  if(fb){
+    html+='<div class="sm-bd-title">AI coach feedback</div>'
+    if(fb.summary)html+=`<div class="sm-fb sm-fb-sum">${e2(fb.summary)}</div>`
+    const w=fb.weakest_zone
+    if(w)html+=`<div class="sm-fb sm-fb-weak">
+      <div class="sm-fb-head"><span class="sm-badge sm-badge-weak">⚠ Weakest zone</span><span class="sm-fb-zone">${e2(w.zone)}</span></div>
+      <p>${e2(w.why)}</p>
+      <div class="sm-fb-item"><div class="sm-fb-lbl">🏸 Drill</div><div class="sm-fb-ttl">${e2(w.drill)}</div><div>${e2(w.drill_desc)}</div></div>
+      <div class="sm-fb-item"><div class="sm-fb-lbl">💪 Exercise</div><div class="sm-fb-ttl">${e2(w.exercise)}</div><div>${e2(w.exercise_desc)}</div></div>
+    </div>`
+    const b=fb.best_zone
+    if(b)html+=`<div class="sm-fb sm-fb-best">
+      <div class="sm-fb-head"><span class="sm-badge sm-badge-best">✓ Strongest zone</span><span class="sm-fb-zone">${e2(b.zone)}</span></div>
+      <p>${e2(b.praise)}</p>
+    </div>`
+    if(fb.reaction_tip)html+=`<div class="sm-fb"><div class="sm-fb-lbl">⚡ Reaction tip</div>${e2(fb.reaction_tip)}</div>`
+    if(fb.focus_next)html+=`<div class="sm-fb"><div class="sm-fb-lbl">🎯 Focus next session</div>${e2(fb.focus_next)}</div>`
+  }else if(results.length){
+    html+='<div class="sm-bd-title">AI coach feedback</div><div class="sm-fb">No feedback was saved for this session.</div>'
+  }
+  $('sm-extra').innerHTML=html
   $('session-modal').classList.add('open')
 }
 window.closeSessionModal=()=>$('session-modal').classList.remove('open')
