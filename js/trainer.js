@@ -1213,6 +1213,7 @@ Provide feedback in this EXACT JSON format (no markdown, no backticks, just raw 
     console.warn('[AI feedback] API failed → using local drills:', err)
     const local = buildLocalFeedback(zoneData, acc, avgMs)
     renderFeedback(local, feedbackContent, `AI coach unavailable (${err.message}) — showing built-in drills instead`)
+    if (local) attachFeedbackToSession(local)
   }
 }
 
