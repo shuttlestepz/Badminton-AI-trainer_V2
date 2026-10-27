@@ -254,6 +254,11 @@ export async function saveSession(sessionData) {
     reactionTime : sessionData.reactionTime || null,
     consistency  : sessionData.consistency  || null,
     movement     : sessionData.movement     || null,
+    difficulty   : sessionData.difficulty   || null,
+    timePerDir   : sessionData.timePerDir   || null,
+    dirStats     : sessionData.dirStats     || {},
+    results      : sessionData.results      || [],
+    roundTimings : sessionData.roundTimings || [],
     createdAt    : serverTimestamp(),
   })
 
@@ -273,6 +278,14 @@ export async function saveSession(sessionData) {
   })
 
   return ref.id
+}
+
+export async function updateSession(sessionId, updates = {}) {
+  const uid = _requireUID()
+  const safe = {}
+  if (updates.feedback) safe.feedback = updates.feedback
+  if (!Object.keys(safe).length) return
+  await updateDoc(doc(db, 'sessions', uid, 'records', sessionId), safe)
 }
 
 export async function getSessions({ uid = null, limitN = 20 } = {}) {
@@ -624,7 +637,7 @@ export default {
   registerUser, loginUser, logoutUser, resetPassword, onAuthReady, getCurrentUser,
   getUserProfile, updateUserProfile, listenUserProfile,
   awardXP, getXPProgress,
-  saveSession, getSessions, listenSessions, getSessionStats, deleteSession,
+  saveSession, updateSession, getSessions, listenSessions, getSessionStats, deleteSession,
   listenLeaderboard, getUserRank,
   getSettings, saveSettings, listenSettings,
   getStudentsBySchoolCode, listenStudentsBySchoolCode,
